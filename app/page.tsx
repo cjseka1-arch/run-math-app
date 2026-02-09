@@ -24,6 +24,9 @@ const CheckIcon = () => (
 const RefreshIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
 );
+// 2단계용 아이콘 (사람, 시계)
+const GroupIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
+const LoopIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>;
 
 export default function RunMathApp() {
   const [step, setStep] = useState(1);
@@ -31,21 +34,17 @@ export default function RunMathApp() {
   const [parentRequest, setParentRequest] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // === 필기 관련 상태 ===
+  // === 필기 상태 ===
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  
-  // 현재 도구 상태 ('pen' 또는 'eraser')
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
 
-  // 1. 캔버스 초기화
+  // 1. 캔버스 초기화 (1, 3, 4단계)
   useEffect(() => {
-    if (step !== 1 && step !== 3) return;
+    if (step === 2) return; 
 
-    // 단계가 바뀌면 도구를 펜으로 초기화
     setTool('pen');
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -66,12 +65,9 @@ export default function RunMathApp() {
           context.lineCap = 'round';
           context.lineJoin = 'round';
           context.imageSmoothingEnabled = true;
-          
-          // 초기 펜 설정
           context.globalCompositeOperation = 'source-over';
           context.lineWidth = 3;
-          context.strokeStyle = step === 3 ? '#ef4444' : '#1f2937';
-          
+          context.strokeStyle = step === 3 ? '#ef4444' : '#1f2937'; 
           ctxRef.current = context;
         }
       }
@@ -80,12 +76,7 @@ export default function RunMathApp() {
     setTimeout(resizeCanvas, 50);
     window.addEventListener('resize', resizeCanvas);
     
-    // 아이패드 제스처 방지
-    const preventTouch = (e: TouchEvent) => {
-      if (e.target === canvas) {
-        e.preventDefault();
-      }
-    };
+    const preventTouch = (e: TouchEvent) => { if (e.target === canvas) e.preventDefault(); };
     canvas.addEventListener('touchstart', preventTouch, { passive: false });
     canvas.addEventListener('touchmove', preventTouch, { passive: false });
     canvas.addEventListener('touchend', preventTouch, { passive: false });
@@ -100,18 +91,15 @@ export default function RunMathApp() {
     };
   }, [step]);
 
-  // 2. 도구(펜/지우개) 변경 효과
+  // 2. 도구 변경
   useEffect(() => {
     if (!ctxRef.current) return;
-    
     if (tool === 'eraser') {
-      // 지우개 모드: 겹치는 부분을 투명하게 만듦 ('destination-out')
       ctxRef.current.globalCompositeOperation = 'destination-out';
-      ctxRef.current.lineWidth = 25; // 지우개는 두껍게
+      ctxRef.current.lineWidth = 25;
     } else {
-      // 펜 모드: 위에 덧칠함 ('source-over')
       ctxRef.current.globalCompositeOperation = 'source-over';
-      ctxRef.current.lineWidth = 3; // 펜은 얇게
+      ctxRef.current.lineWidth = 3;
       ctxRef.current.strokeStyle = step === 3 ? '#ef4444' : '#1f2937';
     }
   }, [tool, step]);
@@ -150,11 +138,10 @@ export default function RunMathApp() {
 
   const clearCanvas = () => {
     if (!ctxRef.current || !canvasRef.current) return;
-    // 캔버스 전체 지우기
-    ctxRef.current.save(); // 현재 상태 저장
-    ctxRef.current.globalCompositeOperation = 'destination-out'; // 지우기 모드로 강제 변경
-    ctxRef.current.fillRect(0, 0, canvasRef.current.width * 2, canvasRef.current.height * 2); // 전체 영역 지움
-    ctxRef.current.restore(); // 원래 펜/지우개 상태로 복구
+    ctxRef.current.save();
+    ctxRef.current.globalCompositeOperation = 'destination-out';
+    ctxRef.current.fillRect(0, 0, canvasRef.current.width * 2, canvasRef.current.height * 2);
+    ctxRef.current.restore();
   };
 
   const handleRefresh = () => {
@@ -166,29 +153,18 @@ export default function RunMathApp() {
   // === 스타일 ===
   const styles = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
-    header: { 
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-      borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', 
-      position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' 
-    },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
     title: { margin: 0, color: '#1e3a8a', fontSize: '22px', fontWeight: 'bold' },
     badge: { background: '#f3f4f6', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', color: '#666', marginRight: '10px' },
     card: { background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0', marginBottom: '20px' },
     input: { width: '100%', padding: '16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '15px', background: '#f9fafb', outline: 'none', boxSizing: 'border-box' as 'border-box' },
     sectionTitle: (color: string) => ({ borderLeft: `5px solid ${color}`, paddingLeft: '15px', marginBottom: '20px', fontSize: '20px', fontWeight: 'bold' }),
-    // 도구 버튼 스타일
     toolBtn: (isActive: boolean) => ({
       padding: '8px 16px', borderRadius: '10px', border: isActive ? '2px solid #2563eb' : '1px solid #ddd',
-      cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' as 'bold', 
-      display: 'flex', alignItems: 'center', gap: '5px',
-      background: isActive ? '#eff6ff' : 'white', color: isActive ? '#2563eb' : '#666',
-      transition: '0.2s', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none'
+      cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' as 'bold', display: 'flex', alignItems: 'center', gap: '5px',
+      background: isActive ? '#eff6ff' : 'white', color: isActive ? '#2563eb' : '#666', transition: '0.2s', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none'
     }),
-    button: { 
-      padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', 
-      fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', 
-      transition: '0.2s', height: '50px', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none'
-    },
+    button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px', userSelect: 'none' as 'none' },
     canvasContainer: { 
       width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', 
       background: 'white', position: 'relative' as 'relative', overflow: 'hidden', 
@@ -196,7 +172,14 @@ export default function RunMathApp() {
     },
     gridCell: { flex: 1, borderRight: '1px solid #eee' },
     footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
-    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', userSelect: 'none' as 'none' }
+    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', userSelect: 'none' as 'none' },
+    // 2단계 분할 카드 스타일
+    splitContainer: { display: 'flex', gap: '15px', marginTop: '20px' },
+    splitCard: (borderColor: string, bg: string) => ({ 
+      flex: 1, padding: '25px', borderRadius: '16px', border: `2px solid ${borderColor}`, background: bg, 
+      display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+    }),
   };
 
   return (
@@ -245,29 +228,18 @@ export default function RunMathApp() {
                 <input type="text" placeholder="학교 / 학년" value={studentInfo.school} onChange={e => setStudentInfo({...studentInfo, school: e.target.value})} style={styles.input} />
               </div>
               
-              {/* 도구 선택 버튼들 */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', marginTop: '30px' }}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#555', fontWeight: 'bold' }}>진도 및 실력 진단</h3>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}>
-                    <PenIcon /> 펜
-                  </button>
-                  <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}>
-                    <EraserIcon /> 지우개
-                  </button>
-                  <button onClick={clearCanvas} style={{ ...styles.toolBtn(false), color: '#ef4444', borderColor: '#fee2e2' }}>
-                    <TrashIcon /> 비우기
-                  </button>
+                  <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}><PenIcon /> 펜</button>
+                  <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}><EraserIcon /> 지우개</button>
+                  <button onClick={clearCanvas} style={{ ...styles.toolBtn(false), color: '#ef4444', borderColor: '#fee2e2' }}><TrashIcon /> 비우기</button>
                 </div>
               </div>
-              
               <div style={styles.canvasContainer}>
                 <canvas
                   ref={canvasRef}
-                  style={{ 
-                    width: '100%', height: '100%', 
-                    touchAction: 'none', outline: 'none', WebkitTapHighlightColor: 'transparent' 
-                  }}
+                  style={{ width: '100%', height: '100%', touchAction: 'none', outline: 'none', WebkitTapHighlightColor: 'transparent' }}
                   onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
                   onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
                 />
@@ -276,21 +248,42 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 2단계: 학원 소개 === */}
+          {/* === 2단계: 커리큘럼 (좌우 분할 디자인) === */}
           {step === 2 && (
             <div>
-              <h2 style={styles.sectionTitle('#f97316')}>2. 런수학 커리큘럼</h2>
-              <div style={{ ...styles.card, background: '#fff7ed', border: '1px solid #ffedd5' }}>
-                <h3 style={{ marginTop: 0, color: '#9a3412', fontWeight: 'bold', fontSize: '18px' }}>🏆 런수학만의 3단계 학습법</h3>
-                <p style={{ lineHeight: '1.8', color: '#666', margin: 0 }}>
-                  1. <strong>개념 영상:</strong> 10분 핵심 요약으로 예습<br/>
-                  2. <strong>맞춤 문제:</strong> 학생 수준에 딱 맞는 난이도<br/>
-                  3. <strong>오답 클리닉:</strong> 틀린 문제는 알 때까지 반복
-                </p>
+              <h2 style={styles.sectionTitle('#f97316')}>2. 런수학 수업 시스템 선택</h2>
+              <p style={{ color: '#666', marginBottom: '20px' }}>학생의 성향에 맞는 수업 방식을 선택할 수 있습니다.</p>
+              
+              {/* 좌우 분할 카드 */}
+              <div style={styles.splitContainer}>
+                {/* 1. 소수 정예 (밀착 관리) */}
+                <div style={styles.splitCard('#2563eb', '#eff6ff')}>
+                  <div style={{ marginBottom: '15px' }}><GroupIcon /></div>
+                  <h3 style={{ margin: '0 0 10px 0', color: '#1e3a8a', fontSize: '20px', fontWeight: 'bold' }}>소수 정예반</h3>
+                  <div style={{ background: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', color: '#2563eb', marginBottom: '15px', border: '1px solid #bfdbfe' }}>최대 6명 제한</div>
+                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.8', color: '#4b5563', fontSize: '15px' }}>
+                    <li><strong>선생님 밀착 마크:</strong><br/>옆에서 하나하나 꼼꼼하게 지도</li>
+                    <li><strong>즉각적인 피드백:</strong><br/>모르는 부분 바로 해결</li>
+                    <li><strong>집중 관리:</strong><br/>학습 습관 교정이 필요한 학생</li>
+                  </ul>
+                </div>
+
+                {/* 2. 시스템 루프 (자기주도) */}
+                <div style={styles.splitCard('#ea580c', '#fff7ed')}>
+                  <div style={{ marginBottom: '15px' }}><LoopIcon /></div>
+                  <h3 style={{ margin: '0 0 10px 0', color: '#9a3412', fontSize: '20px', fontWeight: 'bold' }}>30-10-5 루프반</h3>
+                  <div style={{ background: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', color: '#ea580c', marginBottom: '15px', border: '1px solid #fed7aa' }}>효율적 순환 시스템</div>
+                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.8', color: '#4b5563', fontSize: '15px' }}>
+                    <li><strong>30분 (개념/문제풀이):</strong><br/>몰입해서 스스로 학습</li>
+                    <li><strong>10분 (1:1 점검):</strong><br/>선생님께 핵심 점검 및 질문</li>
+                    <li><strong>5분 (휴식/리프레시):</strong><br/>뇌 휴식 후 다시 몰입</li>
+                  </ul>
+                </div>
               </div>
-              <div style={{ ...styles.card, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                 <h3 style={{ marginTop: 0, color: '#1e40af', fontWeight: 'bold', fontSize: '18px' }}>👨‍🏫 선생님 수업 방향</h3>
-                 <p style={{ color: '#64748b', margin: 0, fontStyle: 'italic' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
+
+              <div style={{ marginTop: '25px', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
+                <span style={{ fontSize: '18px' }}>💡</span> <strong>어떤 방식이 좋을까요?</strong><br/>
+                학생의 성향에 맞춰 상담 시 추천해 드립니다.
               </div>
             </div>
           )}
@@ -299,17 +292,10 @@ export default function RunMathApp() {
           {step === 3 && (
             <div>
               <h2 style={styles.sectionTitle('#22c55e')}>3. 희망 수업 시간표</h2>
-              {/* 도구 선택 버튼들 (3단계용) */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '10px' }}>
-                  <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}>
-                    <PenIcon /> 펜
-                  </button>
-                  <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}>
-                    <EraserIcon /> 지우개
-                  </button>
-                  <button onClick={clearCanvas} style={{ ...styles.toolBtn(false), color: '#ef4444', borderColor: '#fee2e2' }}>
-                    <TrashIcon /> 비우기
-                  </button>
+                  <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}><PenIcon /> 펜</button>
+                  <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}><EraserIcon /> 지우개</button>
+                  <button onClick={clearCanvas} style={{ ...styles.toolBtn(false), color: '#ef4444', borderColor: '#fee2e2' }}><TrashIcon /> 비우기</button>
               </div>
 
               <div style={{ ...styles.canvasContainer, height: '500px', border: '2px solid #eee' }}>
@@ -327,10 +313,7 @@ export default function RunMathApp() {
                 </div>
                 <canvas
                   ref={canvasRef}
-                  style={{ 
-                    width: '100%', height: '100%', 
-                    touchAction: 'none', outline: 'none', WebkitTapHighlightColor: 'transparent' 
-                  }}
+                  style={{ width: '100%', height: '100%', touchAction: 'none', outline: 'none', WebkitTapHighlightColor: 'transparent' }}
                   onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
                   onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
                 />
@@ -339,16 +322,30 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 4단계: 요청사항 === */}
+          {/* === 4단계: 요청사항 (필기) === */}
           {step === 4 && (
             <div>
               <h2 style={styles.sectionTitle('#8b5cf6')}>4. 학부모님 요청사항</h2>
-              <textarea
-                placeholder="예: 아이가 낯을 가리니 초반에는 친근하게 다가와 주세요."
-                value={parentRequest}
-                onChange={e => setParentRequest(e.target.value)}
-                style={{ ...styles.input, height: '200px', resize: 'none' }}
-              />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '14px', color: '#666' }}>자유롭게 적어주세요.</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}><PenIcon /> 펜</button>
+                  <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}><EraserIcon /> 지우개</button>
+                  <button onClick={clearCanvas} style={{ ...styles.toolBtn(false), color: '#ef4444', borderColor: '#fee2e2' }}><TrashIcon /> 비우기</button>
+                </div>
+              </div>
+
+              <div style={styles.canvasContainer}>
+                 <canvas
+                  ref={canvasRef}
+                  style={{ width: '100%', height: '100%', touchAction: 'none', outline: 'none', WebkitTapHighlightColor: 'transparent' }}
+                  onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
+                />
+                {!isDrawing.current && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#ddd', pointerEvents: 'none', userSelect: 'none' as 'none' }}>* 학부모님 말씀을 기록하세요</div>}
+              </div>
+
               <div style={{ marginTop: '20px', background: '#fffbeb', padding: '20px', borderRadius: '16px', border: '1px solid #fcd34d', display: 'flex', gap: '15px' }}>
                 <span style={{ fontSize: '24px' }}>💡</span>
                 <div>
