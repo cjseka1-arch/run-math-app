@@ -24,7 +24,9 @@ const CheckIcon = () => (
 const RefreshIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
 );
-// 2단계용 아이콘 (사람, 시계)
+const CameraIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+);
 const GroupIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
 const LoopIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>;
 
@@ -34,13 +36,20 @@ export default function RunMathApp() {
   const [parentRequest, setParentRequest] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // === 사진 업로드 상태 ===
+  // [key: string] : 이미지 URL
+  const [photos, setPhotos] = useState<{ [key: string]: string | null }>({
+    small1: null, small2: null,
+    loop1: null, loop2: null
+  });
+
   // === 필기 상태 ===
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
 
-  // 1. 캔버스 초기화 (1, 3, 4단계)
+  // 1. 캔버스 초기화
   useEffect(() => {
     if (step === 2) return; 
 
@@ -150,6 +159,15 @@ export default function RunMathApp() {
     }
   };
 
+  // === 사진 업로드 핸들러 ===
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPhotos(prev => ({ ...prev, [id]: url }));
+    }
+  };
+
   // === 스타일 ===
   const styles = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
@@ -180,7 +198,27 @@ export default function RunMathApp() {
       display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center',
       boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
     }),
+    photoBox: {
+      width: '100%', height: '100px', borderRadius: '10px', border: '2px dashed #ccc', 
+      background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', transition: '0.2s'
+    }
   };
+
+  // 사진 업로드 버튼 컴포넌트
+  const PhotoUploadBox = ({ id }: { id: string }) => (
+    <label style={styles.photoBox}>
+      {photos[id] ? (
+        <img src={photos[id]!} alt="uploaded" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '12px' }}>
+          <CameraIcon />
+          <span style={{ marginTop: '4px' }}>사진 추가</span>
+        </div>
+      )}
+      <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, id)} style={{ display: 'none' }} />
+    </label>
+  );
 
   return (
     <div style={styles.container}>
@@ -219,7 +257,7 @@ export default function RunMathApp() {
         </div>
       ) : (
         <>
-          {/* === 1단계: 학생 정보 === */}
+          {/* === 1단계: 학생 정보 (필기) === */}
           {step === 1 && (
             <div>
               <h2 style={styles.sectionTitle('#1e3a8a')}>1. 학생 정보 입력</h2>
@@ -248,24 +286,28 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 2단계: 커리큘럼 (좌우 분할 디자인) === */}
+          {/* === 2단계: 커리큘럼 (사진 업로드 추가됨!) === */}
           {step === 2 && (
             <div>
               <h2 style={styles.sectionTitle('#f97316')}>2. 런수학 수업 시스템 선택</h2>
               <p style={{ color: '#666', marginBottom: '20px' }}>학생의 성향에 맞는 수업 방식을 선택할 수 있습니다.</p>
               
-              {/* 좌우 분할 카드 */}
               <div style={styles.splitContainer}>
                 {/* 1. 소수 정예 (밀착 관리) */}
                 <div style={styles.splitCard('#2563eb', '#eff6ff')}>
                   <div style={{ marginBottom: '15px' }}><GroupIcon /></div>
                   <h3 style={{ margin: '0 0 10px 0', color: '#1e3a8a', fontSize: '20px', fontWeight: 'bold' }}>소수 정예반</h3>
                   <div style={{ background: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', color: '#2563eb', marginBottom: '15px', border: '1px solid #bfdbfe' }}>최대 6명 제한</div>
-                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.8', color: '#4b5563', fontSize: '15px' }}>
-                    <li><strong>선생님 밀착 마크:</strong><br/>옆에서 하나하나 꼼꼼하게 지도</li>
-                    <li><strong>즉각적인 피드백:</strong><br/>모르는 부분 바로 해결</li>
-                    <li><strong>집중 관리:</strong><br/>학습 습관 교정이 필요한 학생</li>
+                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.6', color: '#4b5563', fontSize: '14px', marginBottom: '20px' }}>
+                    <li><strong>선생님 밀착 마크</strong></li>
+                    <li><strong>즉각적인 피드백</strong></li>
+                    <li><strong>집중 관리 시스템</strong></li>
                   </ul>
+                  {/* 사진 업로드 2개 */}
+                  <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: 'auto' }}>
+                    <PhotoUploadBox id="small1" />
+                    <PhotoUploadBox id="small2" />
+                  </div>
                 </div>
 
                 {/* 2. 시스템 루프 (자기주도) */}
@@ -273,17 +315,22 @@ export default function RunMathApp() {
                   <div style={{ marginBottom: '15px' }}><LoopIcon /></div>
                   <h3 style={{ margin: '0 0 10px 0', color: '#9a3412', fontSize: '20px', fontWeight: 'bold' }}>30-10-5 루프반</h3>
                   <div style={{ background: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', color: '#ea580c', marginBottom: '15px', border: '1px solid #fed7aa' }}>효율적 순환 시스템</div>
-                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.8', color: '#4b5563', fontSize: '15px' }}>
-                    <li><strong>30분 (개념/문제풀이):</strong><br/>몰입해서 스스로 학습</li>
-                    <li><strong>10분 (1:1 점검):</strong><br/>선생님께 핵심 점검 및 질문</li>
-                    <li><strong>5분 (휴식/리프레시):</strong><br/>뇌 휴식 후 다시 몰입</li>
+                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.6', color: '#4b5563', fontSize: '14px', marginBottom: '20px' }}>
+                    <li><strong>30분 (개념/문제풀이)</strong></li>
+                    <li><strong>10분 (1:1 점검)</strong></li>
+                    <li><strong>5분 (휴식/리프레시)</strong></li>
                   </ul>
+                  {/* 사진 업로드 2개 */}
+                  <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: 'auto' }}>
+                    <PhotoUploadBox id="loop1" />
+                    <PhotoUploadBox id="loop2" />
+                  </div>
                 </div>
               </div>
 
               <div style={{ marginTop: '25px', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
-                <span style={{ fontSize: '18px' }}>💡</span> <strong>어떤 방식이 좋을까요?</strong><br/>
-                학생의 성향에 맞춰 상담 시 추천해 드립니다.
+                <span style={{ fontSize: '18px' }}>💡</span> <strong>사진 추가 팁</strong><br/>
+                네모 박스를 눌러 수업 풍경이나 교재 사진을 올려보세요.
               </div>
             </div>
           )}
