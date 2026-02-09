@@ -2,790 +2,292 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 
-// --- 아이콘 (직접 그리기) ---
+// === 아이콘들 ===
 const EraserIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-    <path d="M22 21H7" />
-    <path d="m5 11 9 9" />
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>
 );
 const ChevronRightIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m9 18 6-6-6-6" />
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
 );
 const ChevronLeftIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m15 18-6-6 6-6" />
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
 );
 const CheckIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="3"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+);
+const RefreshIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
 );
 
 export default function RunMathApp() {
   const [step, setStep] = useState(1);
   const [studentInfo, setStudentInfo] = useState({ name: '', school: '' });
-  const [parentRequest, setParentRequest] = useState(''); // 학부모 요청사항
-  const [isCompleted, setIsCompleted] = useState(false); // 상담 완료 여부
+  const [parentRequest, setParentRequest] = useState('');
+  const [isCompleted, setIsCompleted] = useState(false);
 
-  // 캔버스 관련
+  // === 필기 설정 ===
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
 
+  // 1. 캔버스 초기화 (화질 개선)
   useEffect(() => {
-    if (step === 1 || step === 3) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+    if (step !== 1 && step !== 3) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resizeCanvas = () => {
       const parent = canvas.parentElement;
       if (parent) {
-        canvas.width = parent.offsetWidth * 2;
-        canvas.height = parent.offsetHeight * 2;
-        canvas.style.width = `${parent.offsetWidth}px`;
-        canvas.style.height = `${parent.offsetHeight}px`;
-      }
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.scale(2, 2);
-        context.lineCap = 'round';
-        context.strokeStyle = step === 3 ? '#ff0000' : '#1e3a8a';
-        context.lineWidth = 3;
-        contextRef.current = context;
-      }
-    }
-  }, [step, isCompleted]);
+        const rect = parent.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1; 
+        
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
 
-  const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
-    let offsetX, offsetY;
-    if ('touches' in event) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      offsetX = event.touches[0].clientX - rect.left;
-      offsetY = event.touches[0].clientY - rect.top;
-    } else {
-      const nativeEvent = event.nativeEvent as MouseEvent;
-      offsetX = nativeEvent.offsetX;
-      offsetY = nativeEvent.offsetY;
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.scale(dpr, dpr);
+          context.lineCap = 'round';
+          context.lineJoin = 'round';
+          context.lineWidth = 3;
+          context.strokeStyle = step === 3 ? '#ef4444' : '#1f2937';
+          setCtx(context);
+        }
+      }
+    };
+    setTimeout(resizeCanvas, 100);
+    window.addEventListener('resize', resizeCanvas);
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, [step]);
+
+  // 2. 좌표 계산
+  const getPos = (e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches && e.touches.length > 0) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
     }
-    if (contextRef.current) {
-      contextRef.current.beginPath();
-      contextRef.current.moveTo(offsetX, offsetY);
-      setIsDrawing(true);
-    }
+    return { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY };
   };
 
-  const draw = (event: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing || !contextRef.current) return;
-    let offsetX, offsetY;
-    if ('touches' in event) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      offsetX = event.touches[0].clientX - rect.left;
-      offsetY = event.touches[0].clientY - rect.top;
-    } else {
-      const nativeEvent = event.nativeEvent as MouseEvent;
-      offsetX = nativeEvent.offsetX;
-      offsetY = nativeEvent.offsetY;
-    }
-    contextRef.current.lineTo(offsetX, offsetY);
-    contextRef.current.stroke();
+  const startDrawing = (e: any) => {
+    if (!ctx) return;
+    setIsDrawing(true);
+    const { x, y } = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: any) => {
+    if (!isDrawing || !ctx) return;
+    if(e.cancelable) e.preventDefault(); 
+    const { x, y } = getPos(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
   };
 
   const stopDrawing = () => {
-    if (contextRef.current) contextRef.current.closePath();
+    if (!ctx) return;
     setIsDrawing(false);
+    ctx.closePath();
   };
 
   const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (canvas && contextRef.current) {
-      contextRef.current.clearRect(0, 0, canvas.width, canvas.height);
+    if (!ctx || !canvasRef.current) return;
+    ctx.clearRect(0, 0, canvasRef.current.width * 2, canvasRef.current.height * 2);
+  };
+
+  // 새로고침 기능
+  const handleRefresh = () => {
+    if (confirm('처음 화면으로 돌아가시겠습니까? 입력한 내용이 사라집니다.')) {
+      window.location.reload();
     }
   };
 
-  // 상담 완료 처리 함수
-  const finishConsultation = () => {
-    // 실제로는 여기서 서버(DB)로 데이터를 전송합니다.
-    console.log('저장된 데이터:', { studentInfo, parentRequest });
-    alert('상담 내용이 선생님 아이패드에 저장되었습니다!');
-    setIsCompleted(true);
-  };
-
-  // 새 상담 시작하기
-  const resetAll = () => {
-    setStudentInfo({ name: '', school: '' });
-    setParentRequest('');
-    setStep(1);
-    setIsCompleted(false);
+  // === 스타일 (디자인) ===
+  const styles = {
+    container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
+    title: { margin: 0, color: '#1e3a8a', fontSize: '22px', fontWeight: 'bold' },
+    badge: { background: '#f3f4f6', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', color: '#666', marginRight: '10px' },
+    card: { background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0', marginBottom: '20px' },
+    input: { width: '100%', padding: '16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '15px', background: '#f9fafb', outline: 'none', boxSizing: 'border-box' as 'border-box' },
+    sectionTitle: (color: string) => ({ borderLeft: `5px solid ${color}`, paddingLeft: '15px', marginBottom: '20px', fontSize: '20px', fontWeight: 'bold' }),
+    button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px' },
+    canvasContainer: { width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', background: 'white', position: 'relative' as 'relative', overflow: 'hidden' },
+    gridRow: { display: 'flex', borderBottom: '1px solid #f0f0f0', height: '100%' },
+    gridCell: { flex: 1, borderRight: '1px solid #eee' },
+    footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
+    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }
   };
 
   return (
-    <div
-      style={{
-        fontFamily: 'sans-serif',
-        padding: '20px',
-        maxWidth: '800px',
-        margin: '0 auto',
-        paddingBottom: '100px',
-      }}
-    >
-      {/* 상단 헤더 */}
-      <header
-        style={{
-          borderBottom: '2px solid #eee',
-          paddingBottom: '10px',
-          marginBottom: '20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <h1 style={{ color: '#003366', margin: 0, fontSize: '24px' }}>
-          런수학학원
-        </h1>
-        {!isCompleted && (
-          <div
-            style={{
-              background: '#f0f0f0',
-              padding: '5px 12px',
-              borderRadius: '20px',
-              fontSize: '14px',
-              color: '#666',
-            }}
-          >
-            상담 진행중: <strong>{step}</strong> / 4 단계
-          </div>
-        )}
-      </header>
+    <div style={styles.container}>
+      {/* 헤더 */}
+      <div style={styles.header}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <h1 style={styles.title}>런수학학원</h1>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {!isCompleted && (
+            <span style={styles.badge}>
+              {step} / 4 단계
+            </span>
+          )}
+          {/* 새로고침 버튼 추가 */}
+          <button onClick={handleRefresh} style={styles.refreshBtn}>
+            <RefreshIcon /> 초기화
+          </button>
+        </div>
+      </div>
 
-      {/* === 상담 완료 화면 (QR코드) === */}
       {isCompleted ? (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '40px 20px',
-            background: 'white',
-            borderRadius: '20px',
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
-          }}
-        >
-          <div
-            style={{
-              width: '80px',
-              height: '80px',
-              background: '#dcfce7',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              color: '#16a34a',
-            }}
-          >
+        // === 완료 화면 ===
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+          <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
             <CheckIcon />
           </div>
-          <h2 style={{ fontSize: '28px', color: '#333', marginBottom: '10px' }}>
-            상담이 완료되었습니다!
-          </h2>
-          <p style={{ color: '#666', marginBottom: '30px' }}>
-            아래 QR코드를 학부모님께 보여드리면,
-            <br />
-            <strong>오늘 상담 내용과 명함</strong>이 전송됩니다.
-          </p>
-
-          {/* QR 코드 (임시 생성 API 사용) */}
-          <div
-            style={{
-              background: 'white',
-              padding: '20px',
-              display: 'inline-block',
-              borderRadius: '15px',
-              border: '1px solid #eee',
-              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-            }}
-          >
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=RunMath_Consultation_${studentInfo.name}`}
-              alt="상담 결과 QR"
-              style={{ width: '200px', height: '200px' }}
-            />
+          <h2 style={{ fontSize: '28px', marginBottom: '10px', fontWeight: 'bold' }}>상담이 완료되었습니다!</h2>
+          <p style={{ color: '#666', marginBottom: '40px' }}>아래 QR코드를 학부모님께 보여주세요.</p>
+          <div style={{ background: 'white', padding: '15px', borderRadius: '15px', border: '1px solid #eee', display: 'inline-block' }}>
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=RunMath_${studentInfo.name}`} alt="QR" style={{ width: '200px', height: '200px' }} />
           </div>
-          <p style={{ marginTop: '15px', fontSize: '14px', color: '#888' }}>
-            * 카메라 앱으로 스캔하세요
-          </p>
-
-          <div style={{ marginTop: '40px' }}>
-            <button
-              onClick={resetAll}
-              style={{
-                background: '#333',
-                color: 'white',
-                padding: '15px 40px',
-                fontSize: '18px',
-                borderRadius: '12px',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              새로운 상담 시작하기
-            </button>
-          </div>
+          <br />
+          <button onClick={() => window.location.reload()} style={{ ...styles.button, background: '#1f2937', color: 'white', marginTop: '40px', width: '100%', justifyContent: 'center' }}>
+            새로운 상담 시작하기
+          </button>
         </div>
       ) : (
         <>
           {/* === 1단계: 학생 정보 === */}
           {step === 1 && (
-            <div className="fade-in">
-              <h2
-                style={{
-                  borderLeft: '5px solid #003366',
-                  paddingLeft: '10px',
-                  color: '#333',
-                }}
-              >
-                1. 학생 정보 입력
-              </h2>
-              <div
-                style={{
-                  marginBottom: '25px',
-                  display: 'flex',
-                  gap: '15px',
-                  flexDirection: 'column',
-                }}
-              >
-                <input
-                  type="text"
-                  placeholder="학생 이름"
-                  value={studentInfo.name}
-                  onChange={(e) =>
-                    setStudentInfo({ ...studentInfo, name: e.target.value })
-                  }
-                  style={{
-                    padding: '15px',
-                    fontSize: '18px',
-                    borderRadius: '12px',
-                    border: '1px solid #ddd',
-                    background: '#f9fafb',
-                  }}
-                />
-                <input
-                  type="text"
-                  placeholder="학교 / 학년"
-                  value={studentInfo.school}
-                  onChange={(e) =>
-                    setStudentInfo({ ...studentInfo, school: e.target.value })
-                  }
-                  style={{
-                    padding: '15px',
-                    fontSize: '18px',
-                    borderRadius: '12px',
-                    border: '1px solid #ddd',
-                    background: '#f9fafb',
-                  }}
-                />
+            <div>
+              <h2 style={styles.sectionTitle('#1e3a8a')}>1. 학생 정보 입력</h2>
+              <div style={styles.card}>
+                <input type="text" placeholder="학생 이름" value={studentInfo.name} onChange={e => setStudentInfo({...studentInfo, name: e.target.value})} style={styles.input} />
+                <input type="text" placeholder="학교 / 학년" value={studentInfo.school} onChange={e => setStudentInfo({...studentInfo, school: e.target.value})} style={styles.input} />
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '10px',
-                }}
-              >
-                <h3 style={{ margin: 0, color: '#444' }}>진도 및 실력 진단</h3>
-                <button
-                  onClick={clearCanvas}
-                  style={{
-                    padding: '6px 12px',
-                    background: 'white',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    color: '#666',
-                  }}
-                >
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', marginTop: '30px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', color: '#555', fontWeight: 'bold' }}>진도 및 실력 진단</h3>
+                <button onClick={clearCanvas} style={{ ...styles.button, padding: '6px 12px', background: 'white', border: '1px solid #ddd', fontSize: '14px', color: '#666' }}>
                   <EraserIcon /> 지우기
                 </button>
               </div>
-              <div
-                style={{
-                  height: '400px',
-                  border: '2px dashed #cbd5e1',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  background: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
-                  backgroundSize: '20px 20px',
-                  backgroundColor: '#fff',
-                }}
-              >
+              <div style={styles.canvasContainer}>
                 <canvas
                   ref={canvasRef}
                   style={{ width: '100%', height: '100%', touchAction: 'none' }}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={stopDrawing}
+                  onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
                 />
-                {!isDrawing && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 20,
-                      right: 20,
-                      color: '#aaa',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    * 펜으로 자유롭게 쓰세요
-                  </div>
-                )}
+                {!isDrawing && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#ddd', pointerEvents: 'none' }}>* 펜으로 자유롭게 쓰세요</div>}
               </div>
             </div>
           )}
 
           {/* === 2단계: 학원 소개 === */}
           {step === 2 && (
-            <div className="fade-in">
-              <h2
-                style={{
-                  borderLeft: '5px solid #ff6600',
-                  paddingLeft: '10px',
-                  color: '#333',
-                }}
-              >
-                2. 런수학 커리큘럼
-              </h2>
-              <div
-                style={{
-                  background: 'white',
-                  padding: '20px',
-                  borderRadius: '16px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  marginBottom: '20px',
-                  border: '1px solid #eee',
-                }}
-              >
-                <h3 style={{ marginTop: 0, color: '#003366' }}>
-                  🏆 런수학만의 3단계 학습법
-                </h3>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '10px',
-                    overflowX: 'auto',
-                    padding: '10px 0',
-                  }}
-                >
-                  <div
-                    style={{
-                      minWidth: '220px',
-                      height: '160px',
-                      background: '#f3f4f6',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#9ca3af',
-                    }}
-                  >
-                    수업 사진 1
-                  </div>
-                  <div
-                    style={{
-                      minWidth: '220px',
-                      height: '160px',
-                      background: '#f3f4f6',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#9ca3af',
-                    }}
-                  >
-                    수업 사진 2
-                  </div>
-                </div>
+            <div>
+              <h2 style={styles.sectionTitle('#f97316')}>2. 런수학 커리큘럼</h2>
+              <div style={{ ...styles.card, background: '#fff7ed', border: '1px solid #ffedd5' }}>
+                <h3 style={{ marginTop: 0, color: '#9a3412', fontWeight: 'bold', fontSize: '18px' }}>🏆 런수학만의 3단계 학습법</h3>
+                <p style={{ lineHeight: '1.8', color: '#666', margin: 0 }}>
+                  1. <strong>개념 영상:</strong> 10분 핵심 요약으로 예습<br/>
+                  2. <strong>맞춤 문제:</strong> 학생 수준에 딱 맞는 난이도<br/>
+                  3. <strong>오답 클리닉:</strong> 틀린 문제는 알 때까지 반복
+                </p>
               </div>
-              <div
-                style={{
-                  background: '#eff6ff',
-                  padding: '20px',
-                  borderRadius: '16px',
-                  border: '1px solid #dbeafe',
-                }}
-              >
-                <h3 style={{ marginTop: 0, color: '#1e40af' }}>
-                  👨‍🏫 선생님 수업 방향
-                </h3>
-                <ul
-                  style={{
-                    lineHeight: '2',
-                    color: '#374151',
-                    paddingLeft: '20px',
-                    margin: 0,
-                  }}
-                >
-                  <li>
-                    <strong>개념 설명:</strong> 10분 핵심 요약 영상 제공
-                  </li>
-                  <li>
-                    <strong>오답 관리:</strong> 취약 유형 완벽 분석
-                  </li>
-                </ul>
+              <div style={{ ...styles.card, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                 <h3 style={{ marginTop: 0, color: '#1e40af', fontWeight: 'bold', fontSize: '18px' }}>👨‍🏫 선생님 수업 방향</h3>
+                 <p style={{ color: '#64748b', margin: 0, fontStyle: 'italic' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
               </div>
             </div>
           )}
 
-          {/* === 3단계: 시간표 짜기 === */}
+          {/* === 3단계: 시간표 === */}
           {step === 3 && (
-            <div className="fade-in">
-              <h2
-                style={{
-                  borderLeft: '5px solid #10b981',
-                  paddingLeft: '10px',
-                  color: '#333',
-                }}
-              >
-                3. 희망 수업 시간표
-              </h2>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  marginBottom: '10px',
-                }}
-              >
-                <button
-                  onClick={clearCanvas}
-                  style={{
-                    padding: '6px 12px',
-                    background: 'white',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    color: '#666',
-                  }}
-                >
+            <div>
+              <h2 style={styles.sectionTitle('#22c55e')}>3. 희망 수업 시간표</h2>
+              <div style={{ textAlign: 'right', marginBottom: '10px' }}>
+                <button onClick={clearCanvas} style={{ ...styles.button, display:'inline-flex', padding: '6px 12px', background: 'white', border: '1px solid #ddd', fontSize: '14px', color: '#666' }}>
                   <EraserIcon /> 다시 쓰기
                 </button>
               </div>
-              <div
-                style={{
-                  position: 'relative',
-                  height: '500px',
-                  border: '2px solid #ddd',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  background: 'white',
-                }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      height: '40px',
-                      background: '#f3f4f6',
-                      borderBottom: '1px solid #ddd',
-                    }}
-                  >
-                    <div
-                      style={{ width: '15%', borderRight: '1px solid #ddd' }}
-                    ></div>
-                    {['월', '화', '수', '목', '금'].map((day) => (
-                      <div
-                        key={day}
-                        style={{
-                          flex: 1,
-                          borderRight: '1px solid #ddd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {day}
-                      </div>
-                    ))}
-                    <div
-                      style={{
-                        flex: 1,
-                        color: '#ef4444',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      토
-                    </div>
+              <div style={{ ...styles.canvasContainer, height: '500px', border: '2px solid #eee' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', pointerEvents: 'none', userSelect: 'none' }}>
+                  <div style={{ display: 'flex', height: '45px', background: '#f3f4f6', borderBottom: '1px solid #ddd' }}>
+                    <div style={{ width: '15%', borderRight: '1px solid #ddd' }}></div>
+                    {['월','화','수','목','금'].map(d=><div key={d} style={{ flex:1, borderRight:'1px solid #ddd', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', color: '#555' }}>{d}</div>)}
                   </div>
-                  {[1, 2, 3, 4, 5, 6].map((time) => (
-                    <div
-                      key={time}
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        borderBottom: '1px solid #eee',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '15%',
-                          borderRight: '1px solid #ddd',
-                          background: '#f9fafb',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          color: '#888',
-                        }}
-                      >
-                        {time + 4}시
-                      </div>
-                      <div
-                        style={{ flex: 1, borderRight: '1px solid #eee' }}
-                      ></div>
-                      <div
-                        style={{ flex: 1, borderRight: '1px solid #eee' }}
-                      ></div>
-                      <div
-                        style={{ flex: 1, borderRight: '1px solid #eee' }}
-                      ></div>
-                      <div
-                        style={{ flex: 1, borderRight: '1px solid #eee' }}
-                      ></div>
-                      <div
-                        style={{ flex: 1, borderRight: '1px solid #eee' }}
-                      ></div>
-                      <div style={{ flex: 1 }}></div>
+                  {[2,3,4,5,6,7].map(t=>(
+                    <div key={t} style={{ flex:1, display:'flex', borderBottom:'1px solid #f0f0f0' }}>
+                      <div style={{ width:'15%', borderRight:'1px solid #ddd', background:'#f9fafb', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', color:'#888' }}>{t}시</div>
+                      <div style={styles.gridCell}></div><div style={styles.gridCell}></div><div style={styles.gridCell}></div><div style={styles.gridCell}></div><div style={{ flex:1 }}></div>
                     </div>
                   ))}
                 </div>
                 <canvas
                   ref={canvasRef}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    touchAction: 'none',
-                  }}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={stopDrawing}
+                  style={{ width: '100%', height: '100%', touchAction: 'none' }}
+                  onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
                 />
               </div>
+              <p style={{ textAlign: 'center', color: '#999', fontSize: '14px', marginTop: '10px' }}>* 가능한 시간에 빨간색으로 표시해주세요.</p>
             </div>
           )}
 
-          {/* === 4단계: 학부모 요청사항 (NEW) === */}
+          {/* === 4단계: 요청사항 === */}
           {step === 4 && (
-            <div className="fade-in">
-              <h2
-                style={{
-                  borderLeft: '5px solid #8b5cf6',
-                  paddingLeft: '10px',
-                  color: '#333',
-                }}
-              >
-                4. 학부모님 요청사항
-              </h2>
-              <p style={{ color: '#666', marginBottom: '15px' }}>
-                등록 전, 학부모님께서 특별히 원하시는 점이나 당부 사항을
-                적어주세요.
-              </p>
-
+            <div>
+              <h2 style={styles.sectionTitle('#8b5cf6')}>4. 학부모님 요청사항</h2>
               <textarea
+                placeholder="예: 아이가 낯을 가리니 초반에는 친근하게 다가와 주세요."
                 value={parentRequest}
-                onChange={(e) => setParentRequest(e.target.value)}
-                placeholder="예: 아이가 낯을 가리니 초반에는 친근하게 다가와 주세요. 숙제 양을 조절해 주세요."
-                style={{
-                  width: '100%',
-                  height: '200px',
-                  padding: '20px',
-                  fontSize: '18px',
-                  borderRadius: '16px',
-                  border: '1px solid #ddd',
-                  background: '#f9fafb',
-                  resize: 'none',
-                  lineHeight: '1.6',
-                  outline: 'none',
-                }}
+                onChange={e => setParentRequest(e.target.value)}
+                style={{ ...styles.input, height: '200px', resize: 'none' }}
               />
-
-              <div
-                style={{
-                  marginTop: '20px',
-                  background: '#fffbeb',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #fcd34d',
-                  display: 'flex',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ fontSize: '24px' }}>💡</div>
+              <div style={{ marginTop: '20px', background: '#fffbeb', padding: '20px', borderRadius: '16px', border: '1px solid #fcd34d', display: 'flex', gap: '15px' }}>
+                <span style={{ fontSize: '24px' }}>💡</span>
                 <div>
-                  <h4 style={{ margin: '0 0 5px 0', color: '#92400e' }}>
-                    상담 체크리스트
-                  </h4>
-                  <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}>
-                    차량 운행 여부 확인하셨나요? / 결제일 안내 드렸나요?
-                  </p>
+                  <h4 style={{ margin: '0 0 5px 0', color: '#92400e', fontWeight: 'bold' }}>상담 체크리스트</h4>
+                  <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}>차량 운행 여부 안내 / 수강료 결제일 안내 / 교재비 안내</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 하단 네비게이션 */}
-          <footer
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              width: '100%',
-              background: 'white',
-              padding: '15px 20px',
-              borderTop: '1px solid #eee',
-              display: 'flex',
-              justifyContent: 'space-between',
-              boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.05)',
-            }}
-          >
-            <button
-              onClick={() => setStep(step - 1)}
-              style={{
-                background: '#f3f4f6',
-                color: '#4b5563',
-                border: 'none',
-                padding: '12px 24px',
-                fontSize: '16px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                visibility: step === 1 ? 'hidden' : 'visible',
-              }}
-            >
-              <ChevronLeftIcon /> 이전
-            </button>
-
-            {step < 4 ? (
-              <button
-                onClick={() => setStep(step + 1)}
-                style={{
-                  background: '#2563eb',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 24px',
-                  fontSize: '16px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.3)',
+          {/* 하단 버튼바 */}
+          <div style={styles.footer}>
+            {/* 이전 버튼: 1단계가 아닐 때만 보임 */}
+             <button 
+                onClick={() => setStep(step - 1)} 
+                style={{ 
+                  ...styles.button, 
+                  background: '#f3f4f6', 
+                  color: '#666', 
+                  visibility: step === 1 ? 'hidden' : 'visible' 
                 }}
-              >
-                {step === 3
-                  ? '다음: 마무리'
-                  : step === 2
-                  ? '다음: 시간표 짜기'
-                  : '다음: 학원 소개'}{' '}
-                <ChevronRightIcon />
-              </button>
-            ) : (
-              <button
-                onClick={finishConsultation}
-                style={{
-                  background: '#059669',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 24px',
-                  fontSize: '16px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 6px -1px rgba(5, 150, 105, 0.3)',
-                }}
-              >
-                <CheckIcon /> 상담 완료 및 QR 생성
-              </button>
-            )}
-          </footer>
+             >
+               <ChevronLeftIcon /> 이전
+             </button>
+             
+             {step < 4 ? (
+               <button onClick={() => setStep(step + 1)} style={{ ...styles.button, background: '#2563eb', color: 'white' }}>
+                 {step === 3 ? '다음: 마무리' : '다음 단계'} <ChevronRightIcon />
+               </button>
+             ) : (
+               <button onClick={() => setIsCompleted(true)} style={{ ...styles.button, background: '#16a34a', color: 'white' }}>
+                 <CheckIcon /> 상담 완료
+               </button>
+             )}
+          </div>
         </>
       )}
     </div>
