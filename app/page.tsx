@@ -37,7 +37,6 @@ export default function RunMathApp() {
   const [isCompleted, setIsCompleted] = useState(false);
 
   // === 사진 업로드 상태 ===
-  // [key: string] : 이미지 URL
   const [photos, setPhotos] = useState<{ [key: string]: string | null }>({
     small1: null, small2: null,
     loop1: null, loop2: null
@@ -159,7 +158,6 @@ export default function RunMathApp() {
     }
   };
 
-  // === 사진 업로드 핸들러 ===
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -191,7 +189,6 @@ export default function RunMathApp() {
     gridCell: { flex: 1, borderRight: '1px solid #eee' },
     footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
     refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', userSelect: 'none' as 'none' },
-    // 2단계 분할 카드 스타일
     splitContainer: { display: 'flex', gap: '15px', marginTop: '20px' },
     splitCard: (borderColor: string, bg: string) => ({ 
       flex: 1, padding: '25px', borderRadius: '16px', border: `2px solid ${borderColor}`, background: bg, 
@@ -205,7 +202,6 @@ export default function RunMathApp() {
     }
   };
 
-  // 사진 업로드 버튼 컴포넌트
   const PhotoUploadBox = ({ id }: { id: string }) => (
     <label style={styles.photoBox}>
       {photos[id] ? (
@@ -286,41 +282,27 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 2단계: 커리큘럼 (사진 업로드 추가됨!) === */}
+          {/* === 2단계: 커리큘럼 + 동영상 체험 === */}
           {step === 2 && (
             <div>
               <h2 style={styles.sectionTitle('#f97316')}>2. 런수학 수업 시스템 선택</h2>
-              <p style={{ color: '#666', marginBottom: '20px' }}>학생의 성향에 맞는 수업 방식을 선택할 수 있습니다.</p>
               
+              {/* 상단 분할 카드 */}
               <div style={styles.splitContainer}>
-                {/* 1. 소수 정예 (밀착 관리) */}
                 <div style={styles.splitCard('#2563eb', '#eff6ff')}>
                   <div style={{ marginBottom: '15px' }}><GroupIcon /></div>
                   <h3 style={{ margin: '0 0 10px 0', color: '#1e3a8a', fontSize: '20px', fontWeight: 'bold' }}>소수 정예반</h3>
                   <div style={{ background: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', color: '#2563eb', marginBottom: '15px', border: '1px solid #bfdbfe' }}>최대 6명 제한</div>
-                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.6', color: '#4b5563', fontSize: '14px', marginBottom: '20px' }}>
-                    <li><strong>선생님 밀착 마크</strong></li>
-                    <li><strong>즉각적인 피드백</strong></li>
-                    <li><strong>집중 관리 시스템</strong></li>
-                  </ul>
-                  {/* 사진 업로드 2개 */}
                   <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: 'auto' }}>
                     <PhotoUploadBox id="small1" />
                     <PhotoUploadBox id="small2" />
                   </div>
                 </div>
 
-                {/* 2. 시스템 루프 (자기주도) */}
                 <div style={styles.splitCard('#ea580c', '#fff7ed')}>
                   <div style={{ marginBottom: '15px' }}><LoopIcon /></div>
                   <h3 style={{ margin: '0 0 10px 0', color: '#9a3412', fontSize: '20px', fontWeight: 'bold' }}>30-10-5 루프반</h3>
                   <div style={{ background: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', color: '#ea580c', marginBottom: '15px', border: '1px solid #fed7aa' }}>효율적 순환 시스템</div>
-                  <ul style={{ textAlign: 'left', paddingLeft: '20px', margin: 0, lineHeight: '1.6', color: '#4b5563', fontSize: '14px', marginBottom: '20px' }}>
-                    <li><strong>30분 (개념/문제풀이)</strong></li>
-                    <li><strong>10분 (1:1 점검)</strong></li>
-                    <li><strong>5분 (휴식/리프레시)</strong></li>
-                  </ul>
-                  {/* 사진 업로드 2개 */}
                   <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: 'auto' }}>
                     <PhotoUploadBox id="loop1" />
                     <PhotoUploadBox id="loop2" />
@@ -328,10 +310,34 @@ export default function RunMathApp() {
                 </div>
               </div>
 
-              <div style={{ marginTop: '25px', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
-                <span style={{ fontSize: '18px' }}>💡</span> <strong>사진 추가 팁</strong><br/>
-                네모 박스를 눌러 수업 풍경이나 교재 사진을 올려보세요.
+              {/* 하단 동영상 사이트 탑재 (iframe) */}
+              <div style={{ marginTop: '40px' }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#333', fontSize: '18px', fontWeight: 'bold', borderLeft:'4px solid #333', paddingLeft:'10px' }}>
+                   🖥️ 런수학 온라인 시스템 체험
+                </h3>
+                <div style={{ 
+                  width: '100%', height: '500px', 
+                  borderRadius: '16px', border: '4px solid #333', 
+                  background: 'black', overflow: 'hidden',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                  position: 'relative'
+                }}>
+                  {/* ▼▼▼ 선생님의 동영상 웹 주소 적용됨 ▼▼▼ */}
+                  <iframe 
+                    src="https://script.google.com/macros/s/AKfycbyy4vL-1KwNGwTb_ZD7P28eLjKR4gN_E6ShGCS3eoKGhEjGGNZkrf-YXkitzwc1UBkN/exec" 
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="Run Math Video System"
+                    allowFullScreen
+                  />
+                  <div style={{ 
+                    position: 'absolute', bottom: '0', width: '100%', background: 'rgba(0,0,0,0.7)', 
+                    color: 'white', textAlign: 'center', padding: '8px', fontSize: '12px' 
+                  }}>
+                    * 실제 학원생들이 사용하는 학습 사이트입니다.
+                  </div>
+                </div>
               </div>
+
             </div>
           )}
 
