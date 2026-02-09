@@ -20,16 +20,13 @@ const RefreshIcon = () => (
 );
 
 export default function RunMathApp() {
-  // === 기본 상태 ===
   const [step, setStep] = useState(1);
   const [studentInfo, setStudentInfo] = useState({ name: '', school: '' });
   const [parentRequest, setParentRequest] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // === [핵심 수정] 필기 최적화 (useRef 사용으로 렉 제거) ===
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // useState 대신 useRef를 써서 화면 갱신 없이 내부적으로만 기록 (속도 10배 향상)
-  const isDrawing = useRef(false); 
+  const isDrawing = useRef(false);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
   // 1. 캔버스 초기화
@@ -55,58 +52,53 @@ export default function RunMathApp() {
           context.scale(dpr, dpr);
           context.lineCap = 'round';
           context.lineJoin = 'round';
-          // 펜이 휙휙 지나가도 끊기지 않도록 부드러운 곡선 처리 설정
-          context.imageSmoothingEnabled = true;
+          context.imageSmoothingEnabled = true; // 부드러운 선 처리
           context.lineWidth = 3;
           context.strokeStyle = step === 3 ? '#ef4444' : '#1f2937';
-          ctxRef.current = context; // Ref에 저장
+          ctxRef.current = context;
         }
       }
     };
 
-    // 화면 로딩 후 즉시 실행
     setTimeout(resizeCanvas, 50);
     window.addEventListener('resize', resizeCanvas);
     
-    // ★ 아이패드 스크롤 방지 (강력한 설정)
+    // ★ [핵심] 아이패드 터치 메뉴(복사하기 등) 원천 차단
     const preventTouch = (e: TouchEvent) => {
       if (e.target === canvas) {
-        e.preventDefault();
+        e.preventDefault(); // 기본 동작(스크롤, 메뉴) 막기
       }
     };
+    // passive: false를 줘야 preventDefault가 먹힘
     canvas.addEventListener('touchstart', preventTouch, { passive: false });
     canvas.addEventListener('touchmove', preventTouch, { passive: false });
     canvas.addEventListener('touchend', preventTouch, { passive: false });
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
-      canvas.removeEventListener('touchstart', preventTouch);
-      canvas.removeEventListener('touchmove', preventTouch);
-      canvas.removeEventListener('touchend', preventTouch);
+      if(canvas) {
+        canvas.removeEventListener('touchstart', preventTouch);
+        canvas.removeEventListener('touchmove', preventTouch);
+        canvas.removeEventListener('touchend', preventTouch);
+      }
     };
   }, [step]);
 
-  // 2. 그리기 함수 (최적화됨)
+  // 2. 그리기 로직
   const getPos = (e: any) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     
-    // 터치/마우스 구분
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-    return { 
-      x: clientX - rect.left, 
-      y: clientY - rect.top 
-    };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
   const startDrawing = (e: any) => {
-    // 텍스트 선택 등 기본 동작 방지
     if (!ctxRef.current) return;
-    
-    isDrawing.current = true; // State 변경 아님 (렌더링 안 함)
+    isDrawing.current = true;
     const { x, y } = getPos(e);
     ctxRef.current.beginPath();
     ctxRef.current.moveTo(x, y);
@@ -114,8 +106,9 @@ export default function RunMathApp() {
 
   const draw = (e: any) => {
     if (!isDrawing.current || !ctxRef.current) return;
+    // 이벤트가 취소 가능하면 취소해서 스크롤 방지
+    if(e.cancelable && e.preventDefault) e.preventDefault(); 
     
-    // ★ 여기가 핵심: 리액트 간섭 없이 브라우저에게 바로 그림 요청
     const { x, y } = getPos(e);
     ctxRef.current.lineTo(x, y);
     ctxRef.current.stroke();
@@ -138,21 +131,40 @@ export default function RunMathApp() {
     }
   };
 
-  // === 스타일 (디자인 유지) ===
+  // === 스타일 ===
   const styles = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
+    header: { 
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+      borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', 
+      position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' 
+    },
     title: { margin: 0, color: '#1e3a8a', fontSize: '22px', fontWeight: 'bold' },
     badge: { background: '#f3f4f6', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', color: '#666', marginRight: '10px' },
+    // ★ [핵심] userSelect: 'none' -> 글자 드래그 선택 방지
     card: { background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0', marginBottom: '20px' },
     input: { width: '100%', padding: '16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '15px', background: '#f9fafb', outline: 'none', boxSizing: 'border-box' as 'border-box' },
     sectionTitle: (color: string) => ({ borderLeft: `5px solid ${color}`, paddingLeft: '15px', marginBottom: '20px', fontSize: '20px', fontWeight: 'bold' }),
-    button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px' },
-    canvasContainer: { width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', background: 'white', position: 'relative' as 'relative', overflow: 'hidden', touchAction: 'none' },
+    button: { 
+      padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', 
+      fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', 
+      transition: '0.2s', height: '50px',
+      // ★ 버튼 글씨 드래그 방지
+      userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none'
+    },
+    canvasContainer: { 
+      width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', 
+      background: 'white', position: 'relative' as 'relative', overflow: 'hidden', 
+      // ★ 여기가 제일 중요합니다 (아이패드 메뉴 차단)
+      touchAction: 'none', 
+      userSelect: 'none' as 'none', 
+      WebkitUserSelect: 'none' as 'none', // 사파리용 선택 방지
+      WebkitTouchCallout: 'none' as 'none' // 사파리용 꾹 누르기 메뉴 방지
+    },
     gridRow: { display: 'flex', borderBottom: '1px solid #f0f0f0', height: '100%' },
     gridCell: { flex: 1, borderRight: '1px solid #eee' },
     footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
-    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }
+    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', userSelect: 'none' as 'none' }
   };
 
   return (
@@ -210,11 +222,16 @@ export default function RunMathApp() {
               <div style={styles.canvasContainer}>
                 <canvas
                   ref={canvasRef}
-                  style={{ width: '100%', height: '100%', touchAction: 'none' }}
+                  style={{ 
+                    width: '100%', height: '100%', 
+                    touchAction: 'none', // 표준: 터치 동작 막기
+                    outline: 'none', // 포커스 테두리 제거
+                    WebkitTapHighlightColor: 'transparent' // 터치 시 파란 박스 제거
+                  }}
                   onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
                   onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
                 />
-                {!isDrawing.current && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#ddd', pointerEvents: 'none' }}>* 펜으로 자유롭게 쓰세요</div>}
+                {!isDrawing.current && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#ddd', pointerEvents: 'none', userSelect: 'none' as 'none' }}>* 펜으로 자유롭게 쓰세요</div>}
               </div>
             </div>
           )}
@@ -248,7 +265,7 @@ export default function RunMathApp() {
                 </button>
               </div>
               <div style={{ ...styles.canvasContainer, height: '500px', border: '2px solid #eee' }}>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', pointerEvents: 'none', userSelect: 'none' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', pointerEvents: 'none', userSelect: 'none' as 'none' }}>
                   <div style={{ display: 'flex', height: '45px', background: '#f3f4f6', borderBottom: '1px solid #ddd' }}>
                     <div style={{ width: '15%', borderRight: '1px solid #ddd' }}></div>
                     {['월','화','수','목','금'].map(d=><div key={d} style={{ flex:1, borderRight:'1px solid #ddd', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', color: '#555' }}>{d}</div>)}
@@ -262,7 +279,12 @@ export default function RunMathApp() {
                 </div>
                 <canvas
                   ref={canvasRef}
-                  style={{ width: '100%', height: '100%', touchAction: 'none' }}
+                  style={{ 
+                    width: '100%', height: '100%', 
+                    touchAction: 'none', 
+                    outline: 'none',
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
                   onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
                   onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
                 />
