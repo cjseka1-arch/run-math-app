@@ -607,7 +607,7 @@ export default function RunMathApp() {
                 <span style={{ fontSize: '24px' }}>💡</span>
                 <div>
                   <h4 style={{ margin: '0 0 5px 0', color: '#92400e', fontWeight: 'bold' }}>상담 체크리스트</h4>
-                  <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}>차량 운행 여부 안내 / 수강료 결제일 안내 / 교재비 안내</p>
+                  <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}> 수강료 결제일 안내</p>
                 </div>
               </div>
             </div>
