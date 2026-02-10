@@ -2,6 +2,9 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 
+// ★★★ 선생님의 구글 스크립트 주소 (아까 만든거 그대로 쓰시면 됩니다) ★★★
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUHmRX9QOKYd3wzknAP0m4WK0x61ZZMnmO6V1wRtmRoRQYBzKbUPT8IS5ejuCJs4xH/exec"; 
+
 // === 아이콘 컴포넌트 ===
 const PenIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>);
 const EraserIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>);
@@ -17,33 +20,36 @@ const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" hei
 const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
 
 export default function RunMathApp() {
-  // === URL 확인 (학부모님 모드인지 선생님 모드인지) ===
   const [isParentMode, setIsParentMode] = useState(false);
   const [parentData, setParentData] = useState<any>(null);
 
   useEffect(() => {
-    // URL에 ?parent=true가 있으면 학부모용 결과 페이지로 전환
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'parent') {
-      setIsParentMode(true);
-      setParentData({
-        name: params.get('name'),
-        school: params.get('school'),
-        plan: params.get('plan'),
-        date: params.get('date')
-      });
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'parent') {
+        setIsParentMode(true);
+        setParentData({
+          name: params.get('name'),
+          school: params.get('school'),
+          plan: params.get('plan'),
+          date: params.get('date')
+        });
+      }
     }
   }, []);
 
   const [step, setStep] = useState(1);
   const [studentInfo, setStudentInfo] = useState({ name: '', school: '' });
   const [contacts, setContacts] = useState({ parent: '', student: '' });
-  const [selectedPlan, setSelectedPlan] = useState(''); // 선택한 커리큘럼
+  const [selectedPlan, setSelectedPlan] = useState(''); 
   const [isCompleted, setIsCompleted] = useState(false);
-  const [showHistory, setShowHistory] = useState(false); // 히스토리 화면 여부
+  const [isSaving, setIsSaving] = useState(false); // 저장 중 상태 추가
+  const [showHistory, setShowHistory] = useState(false); 
   const [historyList, setHistoryList] = useState<any[]>([]);
 
-  // === 사진 업로드 상태 (영구 저장) ===
+  // 필기 데이터 임시 저장용
+  const [canvasData, setCanvasData] = useState<{ [key: number]: string }>({});
+
   const [photos, setPhotos] = useState<{ [key: string]: string | null }>({
     small1: null, small2: null,
     loop1: null, loop2: null
@@ -53,18 +59,23 @@ export default function RunMathApp() {
     const savedPhotos = localStorage.getItem('runMathPhotos');
     if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
     
-    // 상담 기록 불러오기
     const savedHistory = localStorage.getItem('runMathHistory');
     if (savedHistory) setHistoryList(JSON.parse(savedHistory));
   }, []);
 
-  // === 필기 상태 ===
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
 
-  // 1. 캔버스 초기화
+  // ★ 캔버스 데이터 저장 (단계 넘어갈 때)
+  const saveCanvasState = () => {
+    if (canvasRef.current) {
+      const dataUrl = canvasRef.current.toDataURL('image/png');
+      setCanvasData(prev => ({ ...prev, [step]: dataUrl }));
+    }
+  };
+
   useEffect(() => {
     if (step === 2 || isParentMode || showHistory) return; 
 
@@ -92,6 +103,14 @@ export default function RunMathApp() {
           context.globalCompositeOperation = 'source-over';
           context.lineWidth = 3;
           context.strokeStyle = step === 3 ? '#ef4444' : '#1f2937'; 
+          
+          // 이전 단계 데이터가 있으면 불러오기
+          if(canvasData[step]) {
+            const img = new Image();
+            img.src = canvasData[step];
+            img.onload = () => context.drawImage(img, 0, 0, rect.width, rect.height);
+          }
+          
           ctxRef.current = context;
         }
       }
@@ -115,7 +134,6 @@ export default function RunMathApp() {
     };
   }, [step, isParentMode, showHistory]);
 
-  // 2. 도구 변경
   useEffect(() => {
     if (!ctxRef.current) return;
     if (tool === 'eraser') {
@@ -128,7 +146,6 @@ export default function RunMathApp() {
     }
   }, [tool, step]);
 
-  // 그리기 로직 (생략 - 동일)
   const getPos = (e: any) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -162,6 +179,7 @@ export default function RunMathApp() {
     ctxRef.current.globalCompositeOperation = 'destination-out';
     ctxRef.current.fillRect(0, 0, canvasRef.current.width * 2, canvasRef.current.height * 2);
     ctxRef.current.restore();
+    setCanvasData(prev => ({...prev, [step]: ''}));
   };
 
   const handleRefresh = () => {
@@ -182,11 +200,38 @@ export default function RunMathApp() {
     }
   };
 
-  // ★ 상담 완료 및 저장 (아이패드 저장 + QR URL 생성)
-  const handleComplete = () => {
-    if(!confirm('상담을 완료하고 저장하시겠습니까?')) return;
+  // ★★★ [저장 완료 핸들러] 구글 시트로 전송! ★★★
+  const handleComplete = async () => {
+    if(!confirm('상담을 완료하고 구글 시트에 저장하시겠습니까?')) return;
     
-    // 1. 아이패드에 저장 (History)
+    saveCanvasState(); // 마지막 단계 필기 저장
+    setIsSaving(true);
+
+    const payload = {
+      name: studentInfo.name,
+      school: studentInfo.school,
+      plan: selectedPlan || '미선택',
+      pPhone: contacts.parent,
+      sPhone: contacts.student,
+      request: parentData ? parentData.request : '', // 요청사항 텍스트가 있다면
+      images: [canvasData[1], canvasData[3], canvasRef.current?.toDataURL('image/png')]
+    };
+
+    // 1. 구글 시트로 전송
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      alert("인터넷 연결을 확인해주세요. (저장 실패)");
+      setIsSaving(false);
+      return;
+    }
+
+    // 2. 아이패드 내부 기록(History)에도 저장 (백업용)
     const newRecord = {
       id: Date.now(),
       date: new Date().toLocaleDateString(),
@@ -199,24 +244,32 @@ export default function RunMathApp() {
     setHistoryList(updatedHistory);
     localStorage.setItem('runMathHistory', JSON.stringify(updatedHistory));
 
-    // 2. 완료 화면으로 이동
-    setIsCompleted(true);
+    // 3. 완료 화면으로
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsCompleted(true);
+    }, 1000);
   };
 
-  // ★ 학부모용 QR URL 생성기
+  // 다음 단계 이동 핸들러
+  const handleNext = () => {
+    saveCanvasState();
+    setStep(step + 1);
+  }
+
   const getParentUrl = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const params = new URLSearchParams({
-      mode: 'parent', // 학부모 모드 트리거
+      mode: 'parent',
       name: studentInfo.name,
       school: studentInfo.school,
       plan: selectedPlan || '상담 후 결정',
       date: new Date().toLocaleDateString()
     });
-    return `${baseUrl}?${params.toString()}`;
+    return `${baseUrl}${window.location.pathname}?${params.toString()}`;
   };
 
-  // === 스타일 ===
+  // 스타일 (생략 - 기존과 동일, 버튼들 스타일은 그대로 유지)
   const styles = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
@@ -244,7 +297,7 @@ export default function RunMathApp() {
       flex: 1, padding: '25px', borderRadius: '16px', 
       border: isSelected ? `3px solid ${borderColor}` : `1px solid #eee`, 
       background: isSelected ? bg : 'white',
-      opacity: (selectedPlan && !isSelected) ? 0.6 : 1, // 선택 안 된건 흐리게
+      opacity: (selectedPlan && !isSelected) ? 0.6 : 1, 
       display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center',
       boxShadow: isSelected ? '0 10px 20px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)',
       cursor: 'pointer', transition: '0.2s'
@@ -270,7 +323,7 @@ export default function RunMathApp() {
     </label>
   );
 
-  // === [화면 1] 학부모님용 모바일 명함 페이지 ===
+  // === 화면 렌더링 ===
   if (isParentMode && parentData) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
@@ -279,7 +332,6 @@ export default function RunMathApp() {
           <h1 style={{ color: '#1e3a8a', margin: '0 0 5px 0', fontSize: '24px' }}>런수학학원</h1>
           <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
           <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>
-          
           <div style={{ textAlign: 'left' }}>
             <h3 style={{ fontSize: '18px', color: '#333', marginBottom: '15px' }}>📋 상담 결과 요약</h3>
             <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', marginBottom: '10px' }}>
@@ -293,8 +345,6 @@ export default function RunMathApp() {
             <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px', textAlign: 'center' }}>상담일: {parentData.date}</p>
           </div>
         </div>
-
-        {/* 선생님 명함 (연락하기 버튼) */}
         <div style={{ marginTop: '20px' }}>
           <a href="tel:01000000000" style={{ display: 'block', textDecoration: 'none' }}>
             <div style={{ background: '#1e3a8a', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(30, 58, 138, 0.3)' }}>
@@ -307,7 +357,6 @@ export default function RunMathApp() {
     );
   }
 
-  // === [화면 2] 선생님용 상담 기록 리스트 ===
   if (showHistory) {
     return (
       <div style={styles.container}>
@@ -333,7 +382,6 @@ export default function RunMathApp() {
     )
   }
 
-  // === [화면 3] 선생님 상담 마법사 (메인) ===
   return (
     <div style={styles.container}>
       {/* 헤더 */}
@@ -357,7 +405,6 @@ export default function RunMathApp() {
       </div>
 
       {isCompleted ? (
-        // === 완료 화면 (QR 코드 생성) ===
         <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
           <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
             <CheckIcon />
@@ -366,29 +413,22 @@ export default function RunMathApp() {
           <p style={{ color: '#666', marginBottom: '30px' }}>
             학부모님 핸드폰 카메라로<br/>아래 <strong>QR 코드</strong>를 보여주세요.
           </p>
-          
           <div style={{ background: 'white', padding: '20px', borderRadius: '20px', border: '2px solid #2563eb', display: 'inline-block', boxShadow: '0 10px 30px rgba(37, 99, 235, 0.2)' }}>
-            {/* ★ 여기서 학부모용 URL이 담긴 QR을 생성합니다 ★ */}
-            <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getParentUrl())}`} 
-              alt="QR" 
-              style={{ width: '250px', height: '250px' }} 
-            />
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getParentUrl())}`} alt="QR" style={{ width: '250px', height: '250px' }} />
             <p style={{marginTop: '15px', color: '#2563eb', fontSize: '16px', fontWeight: 'bold'}}>✨ 런수학 모바일 명함 전송</p>
           </div>
-
-          <div style={{ marginTop: '30px', color: '#888', fontSize: '14px' }}>
-             * 아이패드 내 [지난 상담 기록]에도 저장되었습니다.
-          </div>
-
+          <div style={{ marginTop: '30px', color: '#888', fontSize: '14px' }}>* 구글 시트 '상담대기' 탭에 저장되었습니다.<br/>(등록생 체크 시 자동 이동)</div>
           <br />
-          <button onClick={() => window.location.reload()} style={{ ...styles.button, background: '#1f2937', color: 'white', marginTop: '40px', width: '100%', justifyContent: 'center' }}>
-            새로운 상담 시작하기
-          </button>
+          <button onClick={() => window.location.reload()} style={{ ...styles.button, background: '#1f2937', color: 'white', marginTop: '40px', width: '100%', justifyContent: 'center' }}>새로운 상담 시작하기</button>
         </div>
       ) : (
         <>
-          {/* === 1단계: 학생 정보 === */}
+          {/* 각 단계별 화면 렌더링 코드 (이전과 동일하여 생략, 위쪽 Full 코드 참조) */}
+          {/* ... (step 1, 2, 3, 4 화면 코드) ... */}
+          {/* 4단계 요청사항 부분 (연락처 입력 등) */}
+          {/* 하단 버튼바 (저장 로직 연결) */}
+          {/* ... */}
+           {/* === 1단계: 학생 정보 (필기) === */}
           {step === 1 && (
             <div>
               <h2 style={styles.sectionTitle('#1e3a8a')}>1. 학생 정보 입력</h2>
@@ -576,29 +616,11 @@ export default function RunMathApp() {
 
           {/* 하단 버튼바 */}
           <div style={styles.footer}>
-             <button 
-                onClick={() => setStep(step - 1)} 
-                style={{ 
-                  ...styles.button, 
-                  background: '#f3f4f6', 
-                  color: '#666', 
-                  visibility: step === 1 ? 'hidden' : 'visible' 
-                }}
-             >
-               <ChevronLeftIcon /> 이전
-             </button>
-             
+             <button onClick={() => setStep(step - 1)} style={{ ...styles.button, background: '#f3f4f6', color: '#666', visibility: step === 1 ? 'hidden' : 'visible' }}><ChevronLeftIcon /> 이전</button>
              {step < 4 ? (
-               <button onClick={() => setStep(step + 1)} style={{ ...styles.button, background: '#2563eb', color: 'white' }}>
-                 {step === 3 ? '다음: 마무리' : '다음 단계'} <ChevronRightIcon />
-               </button>
+               <button onClick={handleNext} style={{ ...styles.button, background: '#2563eb', color: 'white' }}>{step === 3 ? '다음: 마무리' : '다음 단계'} <ChevronRightIcon /></button>
              ) : (
-               <button 
-                onClick={handleComplete} 
-                style={{ ...styles.button, background: '#16a34a', color: 'white' }}
-               >
-                 <CheckIcon /> 상담 완료
-               </button>
+               <button onClick={handleComplete} disabled={isSaving} style={{ ...styles.button, background: isSaving ? '#9ca3af' : '#16a34a', color: 'white' }}>{isSaving ? '저장 중...' : <><CheckIcon /> 상담 완료</>}</button>
              )}
           </div>
         </>
