@@ -81,7 +81,7 @@ export default function RunMathApp() {
   };
 
   useEffect(() => {
-    // 2, 3, 4단계는 캔버스 없음 (3단계: 피드백, 4단계: 시간표)
+    // 2, 3, 4단계는 캔버스 없음
     if (step === 2 || step === 3 || step === 4 || isParentMode || showHistory) return; 
 
     setTool('pen');
@@ -111,7 +111,7 @@ export default function RunMathApp() {
           context.imageSmoothingEnabled = true;
           context.globalCompositeOperation = 'source-over';
           context.lineWidth = 3;
-          context.strokeStyle = step === 5 ? '#ef4444' : '#1f2937'; // 5단계(요청)는 빨간펜 기본 아님
+          context.strokeStyle = step === 5 ? '#ef4444' : '#1f2937'; 
           
           if(canvasData[step]) {
             const img = new Image();
@@ -236,7 +236,6 @@ export default function RunMathApp() {
       request: parentData ? parentData.request : '', 
       time: scheduleInfo.time,
       book: scheduleInfo.book,
-      // 1단계(학생정보)와 5단계(요청) 캔버스 이미지만 전송
       images: [canvasData[1], canvasRef.current?.toDataURL('image/png')]
     };
 
@@ -572,7 +571,7 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 5단계: 요청사항 (필기) === */}
+          {/* === 5단계: 요청사항 (체크리스트 수정됨) === */}
           {step === 5 && (
             <div>
               <h2 style={styles.sectionTitle('#8b5cf6')}>5. 학부모님 요청사항</h2>
@@ -603,11 +602,13 @@ export default function RunMathApp() {
                   onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
                 />
               </div>
+              
+              {/* ★★★ [수정 완료] 체크리스트: 수강료 결제일 안내만 남김 ★★★ */}
               <div style={{ marginTop: '20px', background: '#fffbeb', padding: '20px', borderRadius: '16px', border: '1px solid #fcd34d', display: 'flex', gap: '15px' }}>
                 <span style={{ fontSize: '24px' }}>💡</span>
                 <div>
                   <h4 style={{ margin: '0 0 5px 0', color: '#92400e', fontWeight: 'bold' }}>상담 체크리스트</h4>
-                  <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}> 수강료 결제일 안내</p>
+                  <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}>수강료 결제일 안내</p>
                 </div>
               </div>
             </div>
