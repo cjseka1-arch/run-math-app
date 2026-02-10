@@ -329,13 +329,18 @@ export default function RunMathApp() {
     }
   };
 
-  // === [화면 1] 학부모님용 모바일 명함 ===
+  // === [화면 1] 학부모님용 모바일 명함 (로고 적용됨) ===
   if (isParentMode && parentData) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
         <div style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-          <div style={{ width: '60px', height: '60px', background: '#1e3a8a', borderRadius: '15px', margin: '0 auto 15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px' }}>📚</div>
-          <h1 style={{ color: '#1e3a8a', margin: '0 0 5px 0', fontSize: '24px' }}>런수학학원</h1>
+          
+          {/* ★★★ 로고 이미지 영역 (public/logo.png 파일을 불러옵니다) ★★★ */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            {/* 로고가 잘 보이도록 너비 200px 설정 (화면에 맞춰 자동 조절) */}
+            <img src="/logo.png" alt="런수학학원" style={{ width: '200px', objectFit: 'contain' }} />
+          </div>
+
           <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
           <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>
           
@@ -603,7 +608,7 @@ export default function RunMathApp() {
                 />
               </div>
               
-              {/* ★★★ [수정 완료] 체크리스트: 수강료 결제일 안내만 남김 ★★★ */}
+              {/* ★★★ 체크리스트: 수강료 결제일 안내만 남김 ★★★ */}
               <div style={{ marginTop: '20px', background: '#fffbeb', padding: '20px', borderRadius: '16px', border: '1px solid #fcd34d', display: 'flex', gap: '15px' }}>
                 <span style={{ fontSize: '24px' }}>💡</span>
                 <div>
