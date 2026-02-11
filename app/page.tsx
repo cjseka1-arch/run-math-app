@@ -24,6 +24,8 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>;
 const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
+const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
@@ -48,9 +50,7 @@ export default function RunMathApp() {
 
   const [step, setStep] = useState(1);
   const [studentInfo, setStudentInfo] = useState({ name: '', school: '' });
-  // ★ 과정 선택 상태
   const [division, setDivision] = useState(''); 
-  
   const [contacts, setContacts] = useState({ parent: '', student: '' });
   const [selectedPlan, setSelectedPlan] = useState(''); 
   const [scheduleInfo, setScheduleInfo] = useState({ time: '', book: '' });
@@ -62,8 +62,10 @@ export default function RunMathApp() {
   const [canvasData, setCanvasData] = useState<{ [key: number]: string }>({});
 
   const [photos, setPhotos] = useState<{ [key: string]: string | null }>({
-    small1: null, small2: null,
-    loop1: null, loop2: null
+    small1: null, small2: null, // 고등부 소수
+    loop1: null, loop2: null,   // 고등부 루프
+    elem1: null, elem2: null,   // 초등부
+    mid1: null, mid2: null      // 중등부
   });
 
   useEffect(() => {
@@ -87,9 +89,8 @@ export default function RunMathApp() {
   };
 
   useEffect(() => {
-    // 2, 3, 4단계는 캔버스 없음 (프로그램, 피드백, 시간표)
-    // 1단계(정보), 5단계(요청)만 캔버스 사용
-    if (step === 2 || step === 3 || step === 4 || isParentMode || showHistory) return; 
+    // 2~5단계 중 캔버스 없는 곳 제외
+    if (step === 2 || step === 3 || step === 4 || step === 5 || isParentMode || showHistory) return; 
 
     setTool('pen');
     const canvas = canvasRef.current;
@@ -109,23 +110,20 @@ export default function RunMathApp() {
         const context = canvas.getContext('2d');
         if (context) {
           context.scale(dpr, dpr);
-          
           context.fillStyle = 'white';
           context.fillRect(0, 0, canvas.width, canvas.height);
-
           context.lineCap = 'round';
           context.lineJoin = 'round';
           context.imageSmoothingEnabled = true;
           context.globalCompositeOperation = 'source-over';
           context.lineWidth = 3;
-          context.strokeStyle = step === 5 ? '#ef4444' : '#1f2937'; 
+          context.strokeStyle = step === 6 ? '#ef4444' : '#1f2937'; 
           
           if(canvasData[step]) {
             const img = new Image();
             img.src = canvasData[step];
             img.onload = () => context.drawImage(img, 0, 0, rect.width, rect.height);
           }
-          
           ctxRef.current = context;
         }
       }
@@ -158,7 +156,7 @@ export default function RunMathApp() {
     } else {
       ctxRef.current.globalCompositeOperation = 'source-over';
       ctxRef.current.lineWidth = 3;
-      ctxRef.current.strokeStyle = step === 5 ? '#ef4444' : '#1f2937';
+      ctxRef.current.strokeStyle = step === 6 ? '#ef4444' : '#1f2937';
     }
   }, [tool, step]);
 
@@ -236,7 +234,7 @@ export default function RunMathApp() {
 
     const payload = {
       name: studentInfo.name,
-      school: `[${division}] ${studentInfo.school}`, // 학부 정보 포함
+      school: `[${division}] ${studentInfo.school}`, 
       plan: selectedPlan || '미선택',
       pPhone: contacts.parent,
       sPhone: contacts.student,
@@ -278,13 +276,34 @@ export default function RunMathApp() {
 
   const handleNext = () => {
     saveCanvasState();
-    setStep(step + 1);
+    if (step === 2) {
+      if (division === '고등부' && selectedPlan === '30-10-7 루프반') {
+        setStep(3); 
+      } else {
+        setStep(4); 
+      }
+    } else if (step === 3) {
+       setStep(4);
+    } else {
+       setStep(step + 1);
+    }
   }
 
-  // ★ 단계 선택 핸들러
+  const handleBack = () => {
+    if (step === 4) {
+      if (division === '고등부' && selectedPlan === '30-10-7 루프반') {
+        setStep(3);
+      } else {
+        setStep(2);
+      }
+    } else {
+      setStep(step - 1);
+    }
+  }
+
   const handleDivisionSelect = (div: string) => {
     setDivision(div);
-    handleNext(); // 선택하면 바로 다음 단계로
+    setStep(2); 
   }
 
   const getParentUrl = () => {
@@ -299,6 +318,28 @@ export default function RunMathApp() {
       date: new Date().toLocaleDateString()
     });
     return `${baseUrl}${window.location.pathname}?${params.toString()}`;
+  };
+
+  // ★ 기능 추가: 연락처 저장 (vCard)
+  const handleSaveContact = () => {
+    const vcardContent = `BEGIN:VCARD
+VERSION:3.0
+FN:런수학학원
+TEL;TYPE=CELL:${TEACHER_PHONE}
+END:VCARD`;
+    const blob = new Blob([vcardContent], { type: "text/vcard;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "런수학학원.vcf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ★ 기능 추가: 상담 내용 저장 (인쇄/PDF)
+  const handleSaveConsultation = () => {
+    window.print(); 
   };
 
   const styles = {
@@ -320,7 +361,6 @@ export default function RunMathApp() {
       background: 'white', position: 'relative' as 'relative', overflow: 'hidden', 
       touchAction: 'none', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none', WebkitTouchCallout: 'none' as 'none'
     },
-    gridCell: { flex: 1, borderRight: '1px solid #eee' },
     footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
     refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', userSelect: 'none' as 'none' },
     splitContainer: { display: 'flex', gap: '15px', marginTop: '20px' },
@@ -338,14 +378,17 @@ export default function RunMathApp() {
       background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
       cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', transition: '0.2s'
     },
-    exampleImg: {
-        width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px'
-    },
+    exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
     divBtn: (color: string, bg: string) => ({
       width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg,
       fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: '0.2s'
-    })
+    }),
+    loopStep: {
+      background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb',
+      display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center',
+      textAlign: 'center' as 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative' as 'relative', zIndex: 1
+    }
   };
 
   // === [화면 1] 학부모님용 모바일 명함 ===
@@ -356,6 +399,18 @@ export default function RunMathApp() {
           
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
+          </div>
+
+          {/* ★ 전화걸기 & 연락처 저장 버튼 (상단 이동) ★ */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
+            <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
+                <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' }}>
+                <PhoneIcon /> 전화 걸기
+                </div>
+            </a>
+            <button onClick={handleSaveContact} style={{ flex: 1, border: 'none', background: '#2563eb', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(37, 99, 235, 0.2)', cursor: 'pointer' }}>
+                <UserPlusIcon /> 연락처 저장
+            </button>
           </div>
 
           <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
@@ -383,13 +438,12 @@ export default function RunMathApp() {
             <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px', textAlign: 'center' }}>상담일: {parentData.date}</p>
           </div>
         </div>
+
+        {/* ★ 상담 내용 저장 버튼 (하단 추가) ★ */}
         <div style={{ marginTop: '20px' }}>
-          <a href={`tel:${TEACHER_PHONE}`} style={{ display: 'block', textDecoration: 'none' }}>
-            <div style={{ background: '#1e3a8a', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(30, 58, 138, 0.3)' }}>
-              <PhoneIcon />
-              <span style={{ fontWeight: 'bold', fontSize: '16px' }}>선생님께 전화 걸기</span>
-            </div>
-          </a>
+          <button onClick={handleSaveConsultation} style={{ width: '100%', border: 'none', background: '#475569', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+             <DownloadIcon /> 상담 내용 저장하기 (PDF)
+          </button>
         </div>
       </div>
     );
@@ -433,7 +487,7 @@ export default function RunMathApp() {
               <button onClick={() => setShowHistory(true)} style={styles.refreshBtn}>
                 <HistoryIcon /> 기록
               </button>
-              <span style={styles.badge}>{step} / 5 단계</span>
+              <span style={styles.badge}>{step} 단계</span>
               <button onClick={handleRefresh} style={styles.refreshBtn}>
                 <RefreshIcon /> 초기화
               </button>
@@ -466,13 +520,11 @@ export default function RunMathApp() {
             <div>
               <h2 style={styles.sectionTitle('#1e3a8a')}>1. 학생 정보 및 과정 선택</h2>
               
-              {/* 기본 정보 입력 */}
               <div style={styles.card}>
                 <input type="text" placeholder="학생 이름" value={studentInfo.name} onChange={e => setStudentInfo({...studentInfo, name: e.target.value})} style={styles.input} />
                 <input type="text" placeholder="학교 / 학년" value={studentInfo.school} onChange={e => setStudentInfo({...studentInfo, school: e.target.value})} style={styles.input} />
               </div>
 
-              {/* 과정 선택 버튼들 */}
               <div style={{ marginTop: '30px' }}>
                 <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#555', fontWeight: 'bold' }}>과정을 선택하세요</h3>
                 
@@ -504,17 +556,18 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 2단계: 프로그램 설명 (학년별 다름) === */}
+          {/* === 2단계: 프로그램 선택/설명 === */}
           {step === 2 && (
             <div>
               <h2 style={styles.sectionTitle('#f97316')}>
                 2. {division} 맞춤 프로그램
               </h2>
 
-              {/* === 고등부: 기존 커리큘럼 + 동영상 + 망각루틴 (피드백 제거됨) === */}
+              {/* [고등부] 분리된 화면 1: 반 선택만 표시 */}
               {division === '고등부' && (
                 <div>
                   <div style={styles.splitContainer}>
+                    {/* 소수 정예반 카드 */}
                     <div style={styles.splitCard('#2563eb', '#eff6ff', selectedPlan === '소수 정예반')} onClick={() => setSelectedPlan('소수 정예반')}>
                       <div style={{ marginBottom: '15px' }}><GroupIcon /></div>
                       <h3 style={{ margin: '0 0 10px 0', color: '#1e3a8a', fontSize: '20px', fontWeight: 'bold' }}>소수 정예반</h3>
@@ -529,6 +582,8 @@ export default function RunMathApp() {
                         <PhotoUploadBox id="small2" />
                       </div>
                     </div>
+
+                    {/* 루프반 카드 */}
                     <div style={styles.splitCard('#ea580c', '#fff7ed', selectedPlan === '30-10-7 루프반')} onClick={() => setSelectedPlan('30-10-7 루프반')}>
                       <div style={{ marginBottom: '15px' }}><LoopIcon /></div>
                       <h3 style={{ margin: '0 0 10px 0', color: '#9a3412', fontSize: '20px', fontWeight: 'bold' }}>30-10-7 루프반</h3>
@@ -545,75 +600,179 @@ export default function RunMathApp() {
                       </div>
                     </div>
                   </div>
-
-                  <div style={{ marginTop: '40px', marginBottom: '40px' }}>
-                    <h3 style={{ margin: '0 0 15px 0', color: '#333', fontSize: '18px', fontWeight: 'bold', borderLeft:'4px solid #333', paddingLeft:'10px' }}>🖥️ 런수학 온라인 시스템</h3>
-                    <div style={{ width: '100%', height: '300px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' }}>
-                      <iframe src="https://script.google.com/macros/s/AKfycbyy4vL-1KwNGwTb_ZD7P28eLjKR4gN_E6ShGCS3eoKGhEjGGNZkrf-YXkitzwc1UBkN/exec" style={{ width: '100%', height: '100%', border: 'none' }} title="Run Math Video System" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation" allowFullScreen />
-                    </div>
-                  </div>
-                  
-                  {/* 망각 방지 (고등부 전용) */}
-                  <div style={{ background: '#fff1f2', padding: '20px', borderRadius: '16px', border: '2px solid #fda4af' }}>
-                    <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#9f1239', fontWeight: 'bold' }}>🧠 망각 방지 루틴</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px' }}>
-                      <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 'bold' }}>당일</div></div>
-                      <div>➜</div>
-                      <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 'bold', color: '#be123c' }}>5일 후</div></div>
-                      <div>➜</div>
-                      <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 'bold', color: '#be123c' }}>12일 후</div></div>
-                    </div>
-                  </div>
+                  {selectedPlan === '30-10-7 루프반' && (
+                     <div style={{ marginTop: '20px', textAlign: 'center', color: '#ea580c', fontWeight: 'bold', animation: 'fadeIn 0.5s' }}>
+                       👇 '다음' 버튼을 누르면 루프반 상세 안내로 이어집니다.
+                     </div>
+                  )}
                 </div>
               )}
 
-              {/* === 초등부 내용 (심플하게) === */}
+              {/* [초등부] */}
               {division === '초등부' && (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <div style={{ fontSize: '60px', marginBottom: '20px' }}>🎨</div>
-                  <h3 style={{ fontSize: '24px', color: '#d97706', marginBottom: '10px' }}>수학이 재미있어지는 시간</h3>
-                  <p style={{ color: '#666', lineHeight: '1.6' }}>
-                    초등 시기에는 <strong>'흥미'</strong>와 <strong>'연산 기초'</strong>가 가장 중요합니다.<br/>
-                    런수학은 아이들이 수학을 두려워하지 않도록<br/>
-                    눈높이에 맞춘 1:1 설명을 제공합니다.
-                  </p>
-                  <div style={{ marginTop: '30px', background: '#fffbeb', padding: '20px', borderRadius: '15px', textAlign: 'left' }}>
-                    <ul style={{ margin: 0, paddingLeft: '20px', color: '#92400e' }}>
-                      <li><strong>꼼꼼한 연산 지도:</strong> 실수 줄이기 연습</li>
-                      <li><strong>서술형 대비:</strong> 풀이 과정 쓰는 습관 기르기</li>
-                      <li><strong>맞춤 진도:</strong> 아이 속도에 맞춘 편안한 수업</li>
+                <div style={{ textAlign: 'left', padding: '10px' }}>
+                  <div style={{ background: '#fffbeb', border: '2px solid #fcd34d', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '20px', color: '#92400e', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <StarIcon /> 1:5 듀얼 케어 시스템
+                    </h3>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #fae8ff' }}>
+                      <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid #eee' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '5px' }}>👨‍🏫</div>
+                        <div style={{ fontWeight: 'bold', color: '#333' }}>메인 선생님</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>핵심 개념 설명</div>
+                      </div>
+                      <div style={{ flex: 1, textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '5px' }}>👩‍🏫</div>
+                        <div style={{ fontWeight: 'bold', color: '#333' }}>밀착 튜터링</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>풀이/채점 (1:5)</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                      <PhotoUploadBox id="elem1" />
+                      <PhotoUploadBox id="elem2" />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '25px' }}>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333', fontWeight: 'bold' }}>📚 수준별 맞춤 교재 (디딤돌)</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {['기본', '기본+응용', '응용', '최상위S', '최상위'].map((book, idx) => (
+                        <div key={book} style={{ 
+                          background: idx >= 3 ? '#fff1f2' : '#f0f9ff', 
+                          border: idx >= 3 ? '1px solid #fda4af' : '1px solid #bae6fd',
+                          padding: '10px 15px', borderRadius: '10px', 
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          fontSize: '14px', fontWeight: 'bold', color: '#444'
+                        }}>
+                          <span>Step {idx + 1}. {book}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#334155', fontWeight: 'bold' }}>📝 학습 관리 루틴</h3>
+                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#475569', lineHeight: '1.8' }}>
+                      <li><strong>과제량:</strong> 기본 1장 (학부모님 요청 시 조절 가능)</li>
+                      <li><strong>완북 기간:</strong> 한 권당 약 2개월 소요</li>
+                      <li><strong>진급 기준:</strong> 성취도 평가(시험) 후 다음 단계 결정</li>
                     </ul>
                   </div>
                 </div>
               )}
 
-              {/* === 중등부 내용 (심플하게) === */}
+              {/* [중등부] */}
               {division === '중등부' && (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏫</div>
-                  <h3 style={{ fontSize: '24px', color: '#059669', marginBottom: '10px' }}>내신 만점 & 고등 준비</h3>
-                  <p style={{ color: '#666', lineHeight: '1.6' }}>
-                    중등 수학은 <strong>'고등 수학의 뿌리'</strong>입니다.<br/>
-                    현행 심화와 고등 선행을 균형 있게 다루며,<br/>
-                    학교 시험 완벽 대비를 목표로 합니다.
-                  </p>
-                  <div style={{ marginTop: '30px', background: '#ecfdf5', padding: '20px', borderRadius: '15px', textAlign: 'left' }}>
-                    <ul style={{ margin: 0, paddingLeft: '20px', color: '#065f46' }}>
-                      <li><strong>학교별 내신 대비:</strong> 기출 문제 완벽 분석</li>
-                      <li><strong>고등 연계 학습:</strong> 고1 수학과 연결되는 개념 강조</li>
-                      <li><strong>엄격한 관리:</strong> 과제 및 테스트 철저 확인</li>
-                    </ul>
+                <div style={{ textAlign: 'left', padding: '10px' }}>
+                  <div style={{ marginBottom: '30px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#333', fontWeight: 'bold', borderLeft:'4px solid #10b981', paddingLeft:'10px' }}>📚 개인별 맞춤 교재</h3>
+                    <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                      <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ background: '#10b981', color: 'white', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>기본</div>
+                        <div>
+                          <div style={{ fontWeight: 'bold', color: '#166534' }}>개념원리(올리드) + 쎈B</div>
+                          <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>탄탄한 개념과 유형 학습</div>
+                        </div>
+                      </div>
+                      <div style={{ background: '#fff7ed', padding: '15px', borderRadius: '12px', border: '1px solid #fdba74', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ background: '#f97316', color: 'white', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>심화</div>
+                        <div>
+                          <div style={{ fontWeight: 'bold', color: '#9a3412' }}>일품 / 블랙라벨 / A급</div>
+                          <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>학생 성취도별 선택 심화</div>
+                        </div>
+                      </div>
+                      <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '12px', fontSize: '13px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>🚧</span>
+                        <span><b>전 학년 개념 구멍 발생 시</b> 즉시 해당 파트 보강 후 진도 복귀</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '30px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#333', fontWeight: 'bold', borderLeft:'4px solid #2563eb', paddingLeft:'10px' }}>👨‍🏫 1:6 소수 정예 튜터링</h3>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch', height: '100px' }}>
+                      <div style={{ flex: 1, background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                         <div style={{ fontSize: '20px', marginBottom: '5px' }}>👨‍🏫</div>
+                         <div style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '14px' }}>Main 선생님</div>
+                         <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center' }}>개념 설명 & 진도 관리</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', color: '#94a3b8' }}>➜</div>
+                      <div style={{ flex: 1, background: '#fffbeb', borderRadius: '12px', border: '1px solid #fcd34d', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                         <div style={{ fontSize: '20px', marginBottom: '5px' }}>📝</div>
+                         <div style={{ fontWeight: 'bold', color: '#b45309', fontSize: '14px' }}>튜터링 (1:6)</div>
+                         <div style={{ fontSize: '11px', color: '#78350f', textAlign: 'center' }}>채점, 풀이, 오답 정리</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                      <PhotoUploadBox id="mid1" />
+                      <PhotoUploadBox id="mid2" />
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#fafafa', padding: '20px', borderRadius: '16px', border: '1px solid #e5e5e5' }}>
+                    <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#333', fontWeight: 'bold', textAlign: 'center' }}>🔄 시험대비 '무한 루프' (3~4주)</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', position: 'relative' }}>
+                      <div style={styles.loopStep}><span style={{ fontSize: '12px', color: '#2563eb', fontWeight: 'bold' }}>STEP 1</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>개인별 시험지</div></div>
+                      <div style={styles.loopStep}><span style={{ fontSize: '12px', color: '#ca8a04', fontWeight: 'bold' }}>STEP 2</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>40분 실전 Check</div></div>
+                      <div style={styles.loopStep}><span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 'bold' }}>STEP 3</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>채점 및 피드백</div></div>
+                      <div style={{ ...styles.loopStep, border: '2px solid #ef4444', background: '#fef2f2' }}><span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 'bold' }}>STEP 4</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>오답 & 재시험</div></div>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'white', padding: '5px 10px', borderRadius: '20px', border: '1px solid #ddd', fontSize: '12px', fontWeight: 'bold', color: '#ef4444', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>↻ 반복</div>
+                    </div>
+                    <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginTop: '15px' }}>* 틀린 문제는 유사 문제로 변형되어 완벽히 이해할 때까지 평균 2회 이상 반복합니다.</p>
                   </div>
                 </div>
               )}
-
             </div>
           )}
 
-          {/* === 3단계: 피드백 & 관리 시스템 (모든 학년 공통) === */}
+          {/* === 3단계 (조건부): 고등부 루프반 상세 설명 === */}
           {step === 3 && (
             <div>
-              <h2 style={styles.sectionTitle('#e11d48')}>3. 피드백 및 관리 시스템</h2>
+              <h2 style={styles.sectionTitle('#ea580c')}>
+                3. 루프반 상세 시스템
+              </h2>
+              
+              <div style={{ marginBottom: '40px' }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#333', fontSize: '18px', fontWeight: 'bold', borderLeft:'4px solid #333', paddingLeft:'10px' }}>🖥️ 런수학 온라인 시스템</h3>
+                <p style={{ color: '#666', marginBottom: '15px', fontSize: '14px' }}>
+                  학원 자체 온라인 시스템을 통해<br/>
+                  모든 학습 이력이 데이터로 기록됩니다.
+                </p>
+                <div style={{ width: '100%', height: '300px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' }}>
+                  <iframe src="https://script.google.com/macros/s/AKfycbyy4vL-1KwNGwTb_ZD7P28eLjKR4gN_E6ShGCS3eoKGhEjGGNZkrf-YXkitzwc1UBkN/exec" style={{ width: '100%', height: '100%', border: 'none' }} title="Run Math Video System" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation" allowFullScreen />
+                </div>
+              </div>
+              
+              <div style={{ background: '#fff1f2', padding: '20px', borderRadius: '16px', border: '2px solid #fda4af' }}>
+                <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#9f1239', fontWeight: 'bold' }}>🧠 망각 방지 루틴</h3>
+                <div style={{ marginBottom: '20px', fontSize: '14px', color: '#881337', lineHeight: '1.6' }}>
+                   인간은 학습 1시간 후 50%를 망각합니다.<br/>
+                   런수학은 과학적인 3단계 복습 주기를 설계했습니다.
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 10px', background: 'white', borderRadius: '12px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>1️⃣</div>
+                    <div style={{ fontWeight: 'bold' }}>당일</div>
+                  </div>
+                  <div style={{ color: '#ccc' }}>➜</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>2️⃣</div>
+                    <div style={{ fontWeight: 'bold', color: '#be123c' }}>5일 후</div>
+                  </div>
+                  <div style={{ color: '#ccc' }}>➜</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>3️⃣</div>
+                    <div style={{ fontWeight: 'bold', color: '#be123c' }}>12일 후</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* === 4단계: 피드백 & 관리 시스템 (모든 학년 공통) === */}
+          {step === 4 && (
+            <div>
+              <h2 style={styles.sectionTitle('#e11d48')}>
+                {division === '고등부' && selectedPlan === '30-10-7 루프반' ? '4.' : '3.'} 피드백 및 관리
+              </h2>
               
               <div style={{ marginBottom: '40px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
@@ -633,10 +792,12 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 4단계: 시간표 및 교재 (공통) === */}
-          {step === 4 && (
+          {/* === 5단계: 시간표 및 교재 (공통) === */}
+          {step === 5 && (
             <div>
-              <h2 style={styles.sectionTitle('#22c55e')}>4. 수업 시간 및 교재 설정</h2>
+              <h2 style={styles.sectionTitle('#22c55e')}>
+                {division === '고등부' && selectedPlan === '30-10-7 루프반' ? '5.' : '4.'} 수업 시간 및 교재
+              </h2>
               <div style={{ ...styles.card, marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#555' }}>🕒 수업 일정 및 교재</h3>
                 <div style={{ marginBottom: '15px' }}>
@@ -651,10 +812,12 @@ export default function RunMathApp() {
             </div>
           )}
 
-          {/* === 5단계: 요청사항 (공통) === */}
-          {step === 5 && (
+          {/* === 6단계: 요청사항 (공통) === */}
+          {step === 6 && (
             <div>
-              <h2 style={styles.sectionTitle('#8b5cf6')}>5. 학부모님 요청사항</h2>
+              <h2 style={styles.sectionTitle('#8b5cf6')}>
+                {division === '고등부' && selectedPlan === '30-10-7 루프반' ? '6.' : '5.'} 학부모님 요청사항
+              </h2>
               <div style={{ ...styles.card, marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#555' }}>📞 연락처 정보</h3>
                 <div style={{ display: 'flex', gap: '15px' }}>
@@ -696,9 +859,9 @@ export default function RunMathApp() {
 
           {/* 하단 버튼바 */}
           <div style={styles.footer}>
-             <button onClick={() => setStep(step - 1)} style={{ ...styles.button, background: '#f3f4f6', color: '#666', visibility: step === 1 ? 'hidden' : 'visible' }}><ChevronLeftIcon /> 이전</button>
-             {step < 5 ? (
-               <button onClick={handleNext} style={{ ...styles.button, background: '#2563eb', color: 'white' }}>{step === 4 ? '다음: 마무리' : '다음 단계'} <ChevronRightIcon /></button>
+             <button onClick={handleBack} style={{ ...styles.button, background: '#f3f4f6', color: '#666', visibility: step === 1 ? 'hidden' : 'visible' }}><ChevronLeftIcon /> 이전</button>
+             {step < 6 ? (
+               <button onClick={handleNext} style={{ ...styles.button, background: '#2563eb', color: 'white' }}>다음 단계 <ChevronRightIcon /></button>
              ) : (
                <button onClick={handleComplete} disabled={isSaving} style={{ ...styles.button, background: isSaving ? '#9ca3af' : '#16a34a', color: 'white' }}>{isSaving ? '저장 중...' : <><CheckIcon /> 상담 완료</>}</button>
              )}
