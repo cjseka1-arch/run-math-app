@@ -736,31 +736,31 @@ END:VCARD`;
                   학원 자체 온라인 시스템을 통해<br/>
                   모든 학습 이력이 데이터로 기록됩니다.
                 </p>
-                <div style={{ width: '100%', height: '300px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' }}>
+                <div style={{ width: '100%', height: '500px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' }}>
                   <iframe src="https://script.google.com/macros/s/AKfycbyy4vL-1KwNGwTb_ZD7P28eLjKR4gN_E6ShGCS3eoKGhEjGGNZkrf-YXkitzwc1UBkN/exec" style={{ width: '100%', height: '100%', border: 'none' }} title="Run Math Video System" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation" allowFullScreen />
                 </div>
               </div>
               
-              <div style={{ background: '#fff1f2', padding: '20px', borderRadius: '16px', border: '2px solid #fda4af' }}>
-                <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#9f1239', fontWeight: 'bold' }}>🧠 망각 방지 루틴</h3>
-                <div style={{ marginBottom: '20px', fontSize: '14px', color: '#881337', lineHeight: '1.6' }}>
+              <div style={{ background: '#fff1f2', padding: '15px', borderRadius: '16px', border: '2px solid #fda4af' }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#9f1239', fontWeight: 'bold' }}>🧠 망각 방지 루틴</h3>
+                <div style={{ marginBottom: '15px', fontSize: '13px', color: '#881337', lineHeight: '1.4' }}>
                    인간은 학습 1시간 후 50%를 망각합니다.<br/>
                    런수학은 과학적인 3단계 복습 주기를 설계했습니다.
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 10px', background: 'white', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', background: 'white', borderRadius: '12px' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>1️⃣</div>
-                    <div style={{ fontWeight: 'bold' }}>당일</div>
+                    <div style={{ fontSize: '20px', marginBottom: '5px' }}>1️⃣</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px' }}>당일</div>
                   </div>
                   <div style={{ color: '#ccc' }}>➜</div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>2️⃣</div>
-                    <div style={{ fontWeight: 'bold', color: '#be123c' }}>5일 후</div>
+                    <div style={{ fontSize: '20px', marginBottom: '5px' }}>2️⃣</div>
+                    <div style={{ fontWeight: 'bold', color: '#be123c', fontSize: '14px' }}>5일 후</div>
                   </div>
                   <div style={{ color: '#ccc' }}>➜</div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>3️⃣</div>
-                    <div style={{ fontWeight: 'bold', color: '#be123c' }}>12일 후</div>
+                    <div style={{ fontSize: '20px', marginBottom: '5px' }}>3️⃣</div>
+                    <div style={{ fontWeight: 'bold', color: '#be123c', fontSize: '14px' }}>12일 후</div>
                   </div>
                 </div>
               </div>
@@ -780,7 +780,7 @@ END:VCARD`;
                   <h3 style={{ margin: 0, fontSize: '20px', color: '#be123c', fontWeight: 'bold' }}>1:1 맞춤 피드백</h3>
                 </div>
                 <p style={{ color: '#666', marginBottom: '15px' }}>
-                  {division} 학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
+                  학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <img src="https://docs.google.com/presentation/d/10vbMBLOfwkY6BT7ZuJ7qTvGFnomNVYFTcnisFMBYrBA/export/png" alt="피드백1" style={styles.exampleImg} />
