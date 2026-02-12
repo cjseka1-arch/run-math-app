@@ -61,11 +61,12 @@ export default function RunMathApp() {
   const [historyList, setHistoryList] = useState<any[]>([]);
   const [canvasData, setCanvasData] = useState<{ [key: number]: string }>({});
 
+  // ★ 상태: 고등부는 2장씩, 초중등은 4장씩 사용
   const [photos, setPhotos] = useState<{ [key: string]: string | null }>({
-    small1: null, small2: null, // 고등부 소수
-    loop1: null, loop2: null,   // 고등부 루프
-    elem1: null, elem2: null,   // 초등부
-    mid1: null, mid2: null      // 중등부
+    small1: null, small2: null, 
+    loop1: null, loop2: null,
+    elem1: null, elem2: null, elem3: null, elem4: null,
+    mid1: null, mid2: null, mid3: null, mid4: null
   });
 
   useEffect(() => {
@@ -93,7 +94,6 @@ export default function RunMathApp() {
   };
 
   useEffect(() => {
-    // 2~5단계 중 캔버스 없는 곳 제외
     if (step === 2 || step === 3 || step === 4 || step === 5 || isParentMode || showHistory) return; 
 
     setTool('pen');
@@ -202,7 +202,7 @@ export default function RunMathApp() {
     if (confirm('처음 화면으로 돌아가시겠습니까?')) window.location.href = window.location.pathname;
   };
 
-  // ★ 이미지 압축 함수 (저장 용량 해결용)
+  // ★ 강력한 압축 (초기화 문제 해결)
   const compressImage = async (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const img = document.createElement('img');
@@ -210,14 +210,15 @@ export default function RunMathApp() {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const maxWidth = 800; // 최대 너비 제한
+        // 너비 400px, 퀄리티 0.4로 대폭 줄여 용량 확보 (4장 저장 안정성)
+        const maxWidth = 400; 
         const scaleSize = maxWidth / img.width;
         canvas.width = maxWidth;
         canvas.height = img.height * scaleSize;
 
         if (ctx) {
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.7)); // JPEG 70% 압축
+            resolve(canvas.toDataURL('image/jpeg', 0.4)); 
         } else {
             resolve(img.src);
         }
@@ -230,12 +231,18 @@ export default function RunMathApp() {
     if (file) {
       try {
         const compressedBase64 = await compressImage(file);
-        const newPhotos = { ...photos, [id]: compressedBase64 };
-        setPhotos(newPhotos);
-        // 압축된 이미지를 저장하므로 LocalStorage 용량 초과 방지
-        localStorage.setItem('runMathPhotos', JSON.stringify(newPhotos));
+        // 상태 업데이트
+        setPhotos(prev => {
+            const updated = { ...prev, [id]: compressedBase64 };
+            try {
+                localStorage.setItem('runMathPhotos', JSON.stringify(updated));
+            } catch(e) {
+                alert('저장 공간이 부족합니다. 다른 사진을 지워주세요.');
+            }
+            return updated;
+        });
       } catch (err) {
-        alert("사진 업로드 중 오류가 발생했습니다.");
+        alert("사진 처리 중 오류가 발생했습니다.");
       }
     }
   };
@@ -243,11 +250,11 @@ export default function RunMathApp() {
   const PhotoUploadBox = ({ id }: { id: string }) => (
     <label style={styles.photoBox} onClick={(e) => e.stopPropagation()}>
       {photos[id] ? (
-        <img src={photos[id]!} alt="uploaded" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> // ★ objectFit: contain으로 전체 보이게 수정
+        <img src={photos[id]!} alt="uploaded" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> 
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '10px' }}>
           <CameraIcon />
-          <span style={{ marginTop: '4px' }}>사진 추가</span>
+          <span style={{ marginTop: '2px' }}>+</span>
         </div>
       )}
       <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, id)} style={{ display: 'none' }} />
@@ -400,10 +407,13 @@ END:VCARD`;
       cursor: 'pointer', transition: '0.2s'
     }),
     photoBox: {
-      width: '100%', height: '100px', borderRadius: '10px', border: '2px dashed #ccc', 
-      background: '#f8f9fa', // ★ 배경색 추가 (contain시 여백 예쁘게)
+      flex: 1, // ★ 한 줄에서 균등 분할
+      height: '80px', // 높이를 살짝 줄여서 한줄에 4개 들어갈 때 비율 조정
+      borderRadius: '8px', border: '2px dashed #ccc', 
+      background: '#f8f9fa', 
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', transition: '0.2s'
+      cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', transition: '0.2s',
+      minWidth: '50px' // 너무 작아지지 않게 최소 폭 설정
     },
     exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
     divBtn: (color: string, bg: string) => ({
@@ -428,7 +438,6 @@ END:VCARD`;
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
 
-          {/* 상단 연락처 버튼 */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
             <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
                 <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' }}>
@@ -466,7 +475,6 @@ END:VCARD`;
           </div>
         </div>
 
-        {/* 하단 상담 내용 저장 버튼 */}
         <div style={{ marginTop: '20px' }}>
           <button onClick={handleSaveConsultation} style={{ width: '100%', border: 'none', background: '#475569', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
              <DownloadIcon /> 상담 내용 저장하기 (PDF)
@@ -604,7 +612,8 @@ END:VCARD`;
                         <li><strong>개별 맞춤 진도 및 교재</strong></li>
                         <li><strong>철저한 오답 및 학습 관리</strong></li>
                       </ul>
-                      <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: 'auto' }}>
+                      {/* ★ 고등부 소수정예 사진 2장 (요청사항 반영) */}
+                      <div style={{ display: 'flex', gap: '5px', width: '100%', marginTop: 'auto' }}>
                         <PhotoUploadBox id="small1" />
                         <PhotoUploadBox id="small2" />
                       </div>
@@ -621,7 +630,8 @@ END:VCARD`;
                         <li><strong>7분: 당일 개념 테스트</strong></li>
                         <li style={{ color: '#ea580c', fontWeight: 'bold', marginTop: '5px' }}>🔄 (10분+7분) 무한 반복</li>
                       </ul>
-                      <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: 'auto' }}>
+                      {/* ★ 고등부 루프반 사진 2장 (요청사항 반영) */}
+                      <div style={{ display: 'flex', gap: '5px', width: '100%', marginTop: 'auto' }}>
                         <PhotoUploadBox id="loop1" />
                         <PhotoUploadBox id="loop2" />
                       </div>
@@ -654,9 +664,12 @@ END:VCARD`;
                         <div style={{ fontSize: '12px', color: '#666' }}>풀이/채점 (1:5)</div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                    {/* ★ 초등부 사진 4장 한줄 배치 (요청 유지) */}
+                    <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="elem1" />
                       <PhotoUploadBox id="elem2" />
+                      <PhotoUploadBox id="elem3" />
+                      <PhotoUploadBox id="elem4" />
                     </div>
                   </div>
                   <div style={{ marginBottom: '25px' }}>
@@ -728,9 +741,12 @@ END:VCARD`;
                          <div style={{ fontSize: '11px', color: '#78350f', textAlign: 'center' }}>채점, 풀이, 오답 정리</div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                    {/* ★ 중등부 사진 4장 한줄 배치 (요청 유지) */}
+                    <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="mid1" />
                       <PhotoUploadBox id="mid2" />
+                      <PhotoUploadBox id="mid3" />
+                      <PhotoUploadBox id="mid4" />
                     </div>
                   </div>
 
@@ -763,13 +779,11 @@ END:VCARD`;
                   학원 자체 온라인 시스템을 통해<br/>
                   모든 학습 이력이 데이터로 기록됩니다.
                 </p>
-                {/* ★ 높이 300px -> 500px 로 확대 */}
                 <div style={{ width: '100%', height: '500px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' }}>
                   <iframe src="https://script.google.com/macros/s/AKfycbyy4vL-1KwNGwTb_ZD7P28eLjKR4gN_E6ShGCS3eoKGhEjGGNZkrf-YXkitzwc1UBkN/exec" style={{ width: '100%', height: '100%', border: 'none' }} title="Run Math Video System" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation" allowFullScreen />
                 </div>
               </div>
               
-              {/* ★ 망각 방지 루틴: 축소 디자인 (슬림하게) */}
               <div style={{ background: '#fff1f2', padding: '15px', borderRadius: '16px', border: '2px solid #fda4af' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#9f1239', fontWeight: 'bold' }}>🧠 망각 방지 루틴</h3>
                 <div style={{ marginBottom: '15px', fontSize: '13px', color: '#881337', lineHeight: '1.4' }}>
@@ -808,7 +822,6 @@ END:VCARD`;
                   <FeedbackIcon />
                   <h3 style={{ margin: 0, fontSize: '20px', color: '#be123c', fontWeight: 'bold' }}>1:1 맞춤 피드백</h3>
                 </div>
-                {/* ★ 멘트 통일 */}
                 <p style={{ color: '#666', marginBottom: '15px' }}>
                   학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
                 </p>
