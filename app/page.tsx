@@ -69,11 +69,15 @@ export default function RunMathApp() {
   });
 
   useEffect(() => {
-    const savedPhotos = localStorage.getItem('runMathPhotos');
-    if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
-    
-    const savedHistory = localStorage.getItem('runMathHistory');
-    if (savedHistory) setHistoryList(JSON.parse(savedHistory));
+    try {
+      const savedPhotos = localStorage.getItem('runMathPhotos');
+      if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
+      
+      const savedHistory = localStorage.getItem('runMathHistory');
+      if (savedHistory) setHistoryList(JSON.parse(savedHistory));
+    } catch (e) {
+      console.error("로컬 스토리지 로드 실패", e);
+    }
   }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -198,24 +202,48 @@ export default function RunMathApp() {
     if (confirm('처음 화면으로 돌아가시겠습니까?')) window.location.href = window.location.pathname;
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+  // ★ 이미지 압축 함수 (저장 용량 해결용)
+  const compressImage = async (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const maxWidth = 800; // 최대 너비 제한
+        const scaleSize = maxWidth / img.width;
+        canvas.width = maxWidth;
+        canvas.height = img.height * scaleSize;
+
+        if (ctx) {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7)); // JPEG 70% 압축
+        } else {
+            resolve(img.src);
+        }
+      };
+    });
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        const newPhotos = { ...photos, [id]: base64String };
+      try {
+        const compressedBase64 = await compressImage(file);
+        const newPhotos = { ...photos, [id]: compressedBase64 };
         setPhotos(newPhotos);
+        // 압축된 이미지를 저장하므로 LocalStorage 용량 초과 방지
         localStorage.setItem('runMathPhotos', JSON.stringify(newPhotos));
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        alert("사진 업로드 중 오류가 발생했습니다.");
+      }
     }
   };
 
   const PhotoUploadBox = ({ id }: { id: string }) => (
     <label style={styles.photoBox} onClick={(e) => e.stopPropagation()}>
       {photos[id] ? (
-        <img src={photos[id]!} alt="uploaded" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={photos[id]!} alt="uploaded" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> // ★ objectFit: contain으로 전체 보이게 수정
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '12px' }}>
           <CameraIcon />
@@ -320,7 +348,6 @@ export default function RunMathApp() {
     return `${baseUrl}${window.location.pathname}?${params.toString()}`;
   };
 
-  // ★ 기능 추가: 연락처 저장 (vCard)
   const handleSaveContact = () => {
     const vcardContent = `BEGIN:VCARD
 VERSION:3.0
@@ -337,7 +364,6 @@ END:VCARD`;
     document.body.removeChild(link);
   };
 
-  // ★ 기능 추가: 상담 내용 저장 (인쇄/PDF)
   const handleSaveConsultation = () => {
     window.print(); 
   };
@@ -375,7 +401,8 @@ END:VCARD`;
     }),
     photoBox: {
       width: '100%', height: '100px', borderRadius: '10px', border: '2px dashed #ccc', 
-      background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#f8f9fa', // ★ 배경색 추가 (contain시 여백 예쁘게)
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', transition: '0.2s'
     },
     exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
@@ -401,7 +428,7 @@ END:VCARD`;
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
 
-          {/* ★ 전화걸기 & 연락처 저장 버튼 (상단 이동) ★ */}
+          {/* 상단 연락처 버튼 */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
             <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
                 <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' }}>
@@ -439,7 +466,7 @@ END:VCARD`;
           </div>
         </div>
 
-        {/* ★ 상담 내용 저장 버튼 (하단 추가) ★ */}
+        {/* 하단 상담 내용 저장 버튼 */}
         <div style={{ marginTop: '20px' }}>
           <button onClick={handleSaveConsultation} style={{ width: '100%', border: 'none', background: '#475569', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
              <DownloadIcon /> 상담 내용 저장하기 (PDF)
@@ -736,11 +763,13 @@ END:VCARD`;
                   학원 자체 온라인 시스템을 통해<br/>
                   모든 학습 이력이 데이터로 기록됩니다.
                 </p>
+                {/* ★ 높이 300px -> 500px 로 확대 */}
                 <div style={{ width: '100%', height: '500px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' }}>
                   <iframe src="https://script.google.com/macros/s/AKfycbyy4vL-1KwNGwTb_ZD7P28eLjKR4gN_E6ShGCS3eoKGhEjGGNZkrf-YXkitzwc1UBkN/exec" style={{ width: '100%', height: '100%', border: 'none' }} title="Run Math Video System" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation" allowFullScreen />
                 </div>
               </div>
               
+              {/* ★ 망각 방지 루틴: 축소 디자인 (슬림하게) */}
               <div style={{ background: '#fff1f2', padding: '15px', borderRadius: '16px', border: '2px solid #fda4af' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#9f1239', fontWeight: 'bold' }}>🧠 망각 방지 루틴</h3>
                 <div style={{ marginBottom: '15px', fontSize: '13px', color: '#881337', lineHeight: '1.4' }}>
@@ -779,6 +808,7 @@ END:VCARD`;
                   <FeedbackIcon />
                   <h3 style={{ margin: 0, fontSize: '20px', color: '#be123c', fontWeight: 'bold' }}>1:1 맞춤 피드백</h3>
                 </div>
+                {/* ★ 멘트 통일 */}
                 <p style={{ color: '#666', marginBottom: '15px' }}>
                   학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
                 </p>
