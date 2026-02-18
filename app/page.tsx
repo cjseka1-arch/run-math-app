@@ -8,7 +8,7 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUHmRX9QOKYd
 // ★★★ 선생님 전화번호 ★★★
 const TEACHER_PHONE = "01076501239";
 
-// ★★★ Imgur 이미지 주소 (보내주신 4장) - 아이패드 차단 방지 적용됨 ★★★
+// ★★★ [새 사진 4장] Imgur 이미지 주소 (무조건 이거부터 나옴) ★★★
 const DRIVE_IMAGES = [
   "https://i.imgur.com/XZ5GcQX.jpeg", // 사진 1
   "https://i.imgur.com/JDag5r6.jpeg", // 사진 2
@@ -16,7 +16,7 @@ const DRIVE_IMAGES = [
   "https://i.imgur.com/bmk6FJE.jpeg"  // 사진 4
 ];
 
-// === 아이콘 컴포넌트 (생략 없이 전체 포함) ===
+// === 아이콘 컴포넌트 ===
 const PenIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>);
 const EraserIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>);
 const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>);
@@ -78,7 +78,8 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos');
+      // ★★★ [중요] 저장소 키를 'runMathPhotos_v2'로 변경하여 기존 캐시 무시하고 새 사진 강제 로드 ★★★
+      const savedPhotos = localStorage.getItem('runMathPhotos_v2');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       
       const savedHistory = localStorage.getItem('runMathHistory');
@@ -239,7 +240,8 @@ export default function RunMathApp() {
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
             try {
-                localStorage.setItem('runMathPhotos', JSON.stringify(updated));
+                // ★★★ [중요] 저장소 키 변경됨 (v2) ★★★
+                localStorage.setItem('runMathPhotos_v2', JSON.stringify(updated));
             } catch(e) {
                 console.log('Storage Full');
             }
@@ -251,18 +253,18 @@ export default function RunMathApp() {
     }
   };
 
-  // ★★★ [중요 수정] 아이패드 차단 방지용 컴포넌트 ★★★
+  // ★★★ [아이패드 보안 차단 방지 적용] ★★★
   const PhotoUploadBox = ({ id }: { id: string }) => (
     <label style={styles.photoBox} onClick={(e) => e.stopPropagation()}>
       {photos[id] ? (
         <img 
             src={photos[id]!} 
             alt="Img" 
-            referrerPolicy="no-referrer" // ★ Imgur 차단 방지 핵심 속성
+            referrerPolicy="no-referrer" // ★ Imgur 차단 방지 핵심
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = "https://via.placeholder.com/100?text=Retry"; // 실패시 대체 이미지
+                target.style.display = 'none'; // 에러나면 숨김
             }}
         /> 
       ) : (
@@ -678,7 +680,7 @@ END:VCARD`;
                         <div style={{ fontSize: '12px', color: '#666' }}>풀이/채점 (1:5)</div>
                       </div>
                     </div>
-                    {/* ★ 초등부 사진 4장 한줄 배치 (요청 유지) */}
+                    {/* ★ 초등부 사진 4장 한줄 배치 */}
                     <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="elem1" />
                       <PhotoUploadBox id="elem2" />
@@ -755,7 +757,7 @@ END:VCARD`;
                          <div style={{ fontSize: '11px', color: '#78350f', textAlign: 'center' }}>채점, 풀이, 오답 정리</div>
                       </div>
                     </div>
-                    {/* ★ 중등부 사진 4장 한줄 배치 (요청 유지) */}
+                    {/* ★ 중등부 사진 4장 한줄 배치 */}
                     <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="mid1" />
                       <PhotoUploadBox id="mid2" />
