@@ -243,11 +243,11 @@ export default function RunMathApp() {
     document.body.removeChild(link);
   };
 
-  // ★★★ [신규] 통합 저장 기능 (순차 실행) ★★★
+  // ★★★ [신규] 통합 저장 기능 (순차 실행: 이미지 -> 연락처) ★★★
   const handleSaveEverything = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    alert("📸 상담 내용을 이미지로 저장합니다.\n(저장 후 연락처 등록 창이 뜹니다!)");
+    alert("잠시만요! 📸 상담 내용을 이미지로 저장하고,\n곧이어 연락처 등록 창이 뜹니다.");
 
     // 1. 이미지 저장 (캡처)
     const element = document.getElementById('mobile-card');
@@ -268,7 +268,7 @@ export default function RunMathApp() {
         }
     }
 
-    // 2. 2초 후 연락처 저장 실행 (순차적 다운로드)
+    // 2. 2초 후 연락처 저장 실행 (순차적 다운로드로 충돌 방지)
     setTimeout(() => {
         handleSaveContact();
         setIsProcessing(false);
@@ -307,16 +307,12 @@ export default function RunMathApp() {
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
 
-          {/* 버튼 영역 (캡처 시에는 숨겨짐 - data-html2canvas-ignore) */}
           <div data-html2canvas-ignore="true" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
             <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
                 <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' }}>
                 <PhoneIcon /> 전화 걸기
                 </div>
             </a>
-            <button onClick={handleSaveContact} style={{ flex: 1, border: 'none', background: '#2563eb', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(37, 99, 235, 0.2)', cursor: 'pointer' }}>
-                <UserPlusIcon /> 연락처 저장
-            </button>
           </div>
 
           <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
@@ -345,7 +341,7 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* 통합 저장 버튼 (맨 아래 하나만 남김) */}
+        {/* ★★★ [수정됨] 통합 저장 버튼만 남김 (PDF 버튼 삭제됨) ★★★ */}
         <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveEverything} 
