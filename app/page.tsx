@@ -8,12 +8,12 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUHmRX9QOKYd
 // ★★★ 선생님 전화번호 ★★★
 const TEACHER_PHONE = "01076501239";
 
-// ★★★ Imgur 이미지 주소 (보내주신 4장) - 아이패드 차단 방지 적용됨 ★★★
+// ★★★ Imgur 이미지 주소 ★★★
 const DRIVE_IMAGES = [
-  "https://i.imgur.com/XZ5GcQX.jpeg", // 사진 1
-  "https://i.imgur.com/JDag5r6.jpeg", // 사진 2
-  "https://i.imgur.com/gzo6Yw2.jpeg", // 사진 3
-  "https://i.imgur.com/bmk6FJE.jpeg"  // 사진 4
+  "https://i.imgur.com/XZ5GcQX.jpeg", 
+  "https://i.imgur.com/JDag5r6.jpeg", 
+  "https://i.imgur.com/gzo6Yw2.jpeg", 
+  "https://i.imgur.com/bmk6FJE.jpeg"
 ];
 
 // === 아이콘 컴포넌트 ===
@@ -39,8 +39,9 @@ const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
   const [parentData, setParentData] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false); 
 
-  // ★ html2canvas 로드 (이미지 저장을 위한 도구)
+  // ★ html2canvas 로드
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const script = document.createElement('script');
@@ -203,7 +204,7 @@ export default function RunMathApp() {
   const PhotoUploadBox = ({ id }: { id: string }) => (
     <label style={styles.photoBox} onClick={(e) => e.stopPropagation()}>
       {photos[id] ? (
-        <img src={photos[id]!} alt="Img" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> 
+        <img src={photos[id]!} alt="Img" crossOrigin="anonymous" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> 
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '10px' }}><CameraIcon /><span style={{ marginTop: '2px' }}>+</span></div>
       )}
@@ -242,36 +243,36 @@ export default function RunMathApp() {
     document.body.removeChild(link);
   };
 
-  // ★★★ [수정 2] 화면을 이미지로 저장 (html2canvas 사용)
-  const handleSaveImage = () => {
+  // ★★★ [신규] 통합 저장 기능 (순차 실행) ★★★
+  const handleSaveEverything = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    alert("📸 상담 내용을 이미지로 저장합니다.\n(저장 후 연락처 등록 창이 뜹니다!)");
+
+    // 1. 이미지 저장 (캡처)
     const element = document.getElementById('mobile-card');
-    if (!element) return;
-    
-    // @ts-ignore
-    if (window.html2canvas) {
+    if (element && 
         // @ts-ignore
-        window.html2canvas(element, { useCORS: true, scale: 2 }).then(canvas => {
+        window.html2canvas) {
+        try {
+            // @ts-ignore
+            const canvas = await window.html2canvas(element, { useCORS: true, scale: 2, allowTaint: true });
             const link = document.createElement('a');
             link.download = `${parentData.name}_상담내용.png`;
             link.href = canvas.toDataURL();
+            document.body.appendChild(link);
             link.click();
-        });
-    } else {
-        alert("이미지 저장 기능을 준비중입니다. 1초 뒤에 다시 눌러주세요.");
+            document.body.removeChild(link);
+        } catch(e) {
+            console.error("Image capture failed", e);
+        }
     }
-  };
 
-  // ★★★ [신규] 전화번호 + 이미지 동시에 저장 (순차 실행) ★★★
-  const handleSaveEverything = async () => {
-    if(!confirm("연락처와 상담 내용을 모두 저장하시겠습니까?")) return;
-    
-    // 1. 연락처 저장 시도
-    handleSaveContact();
-
-    // 2. 1초 대기 후 이미지 저장 (브라우저 차단 방지)
+    // 2. 2초 후 연락처 저장 실행 (순차적 다운로드)
     setTimeout(() => {
-        handleSaveImage();
-    }, 1000);
+        handleSaveContact();
+        setIsProcessing(false);
+    }, 2000);
   };
 
   const styles = {
@@ -306,7 +307,7 @@ export default function RunMathApp() {
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
 
-          {/* 버튼 영역 (캡처 시에는 숨겨짐) */}
+          {/* 버튼 영역 (캡처 시에는 숨겨짐 - data-html2canvas-ignore) */}
           <div data-html2canvas-ignore="true" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
             <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
                 <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' }}>
@@ -344,15 +345,18 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* 하단 버튼 영역 */}
-        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button onClick={handleSaveImage} style={{ width: '100%', border: 'none', background: '#475569', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-             <ImageIcon /> 상담 내용만 이미지로 저장
+        {/* 통합 저장 버튼 (맨 아래 하나만 남김) */}
+        <div style={{ marginTop: '20px' }}>
+          <button 
+            onClick={handleSaveEverything} 
+            disabled={isProcessing}
+            style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' }}
+          >
+             {isProcessing ? '⏳ 저장 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
           </button>
-          
-          <button onClick={handleSaveEverything} style={{ width: '100%', border: 'none', background: 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)' }}>
-             <CheckIcon /> ✨ 연락처 & 상담내용 한번에 저장
-          </button>
+          <p style={{ textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px' }}>
+            * 사진첩에 저장 후, 연락처 등록 화면이 뜹니다.
+          </p>
         </div>
       </div>
     );
@@ -538,7 +542,7 @@ export default function RunMathApp() {
                         <div style={{ fontSize: '12px', color: '#666' }}>풀이/채점 (1:5)</div>
                       </div>
                     </div>
-                    {/* ★ 초등부 사진 4장 한줄 배치 (요청 유지) */}
+                    {/* ★ 초등부 사진 4장 한줄 배치 */}
                     <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="elem1" />
                       <PhotoUploadBox id="elem2" />
@@ -615,7 +619,7 @@ export default function RunMathApp() {
                          <div style={{ fontSize: '11px', color: '#78350f', textAlign: 'center' }}>채점, 풀이, 오답 정리</div>
                       </div>
                     </div>
-                    {/* ★ 중등부 사진 4장 한줄 배치 (요청 유지) */}
+                    {/* ★ 중등부 사진 4장 한줄 배치 */}
                     <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="mid1" />
                       <PhotoUploadBox id="mid2" />
