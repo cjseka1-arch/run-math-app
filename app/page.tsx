@@ -8,12 +8,12 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUHmRX9QOKYd
 // ★★★ 선생님 전화번호 ★★★
 const TEACHER_PHONE = "01076501239";
 
-// ★★★ 구글 드라이브 이미지 (직링크 변환됨) ★★★
+// ★★★ 구글 드라이브 이미지 (차단 방지용 고화질 썸네일 링크 사용) ★★★
 const DRIVE_IMAGES = [
-  "https://drive.google.com/uc?export=view&id=1viO3SoF_cFTvivPdaxnIyyI7CFdDJAW4", // 사진 1
-  "https://drive.google.com/uc?export=view&id=1mkSi3Fv83lgkLVILhqWpmPyxm6JbYApW", // 사진 2
-  "https://drive.google.com/uc?export=view&id=1YrA74vY0qKs6eaWlyNbBaJG_XvMPcYS4", // 사진 3
-  "https://drive.google.com/uc?export=view&id=1nZA_gwng79D9E10G08ueq_5zohChwfZJ"  // 사진 4
+  "https://drive.google.com/thumbnail?id=1viO3SoF_cFTvivPdaxnIyyI7CFdDJAW4&sz=w1000", // 사진 1
+  "https://drive.google.com/thumbnail?id=1mkSi3Fv83lgkLVILhqWpmPyxm6JbYApW&sz=w1000", // 사진 2
+  "https://drive.google.com/thumbnail?id=1YrA74vY0qKs6eaWlyNbBaJG_XvMPcYS4&sz=w1000", // 사진 3
+  "https://drive.google.com/thumbnail?id=1nZA_gwng79D9E10G08ueq_5zohChwfZJ&sz=w1000"  // 사진 4
 ];
 
 // === 아이콘 컴포넌트 ===
@@ -69,27 +69,17 @@ export default function RunMathApp() {
   const [historyList, setHistoryList] = useState<any[]>([]);
   const [canvasData, setCanvasData] = useState<{ [key: number]: string }>({});
 
-  // ★ 구글 드라이브 사진으로 초기화 (4장씩 배치)
   const [photos, setPhotos] = useState<{ [key: string]: string | null }>({
     small1: DRIVE_IMAGES[0], small2: DRIVE_IMAGES[1], 
     loop1: DRIVE_IMAGES[2], loop2: DRIVE_IMAGES[3],
-    
-    elem1: DRIVE_IMAGES[0], elem2: DRIVE_IMAGES[1], 
-    elem3: DRIVE_IMAGES[2], elem4: DRIVE_IMAGES[3],
-    
-    mid1: DRIVE_IMAGES[0], mid2: DRIVE_IMAGES[1], 
-    mid3: DRIVE_IMAGES[2], mid4: DRIVE_IMAGES[3]
+    elem1: DRIVE_IMAGES[0], elem2: DRIVE_IMAGES[1], elem3: DRIVE_IMAGES[2], elem4: DRIVE_IMAGES[3],
+    mid1: DRIVE_IMAGES[0], mid2: DRIVE_IMAGES[1], mid3: DRIVE_IMAGES[2], mid4: DRIVE_IMAGES[3]
   });
 
   useEffect(() => {
     try {
       const savedPhotos = localStorage.getItem('runMathPhotos');
-      if (savedPhotos) {
-        // 기존 저장된 사진이 있으면 병합 (단, 드라이브 사진이 우선일 수 있음)
-        // 여기서는 드라이브 사진을 기본으로 하고, 사용자가 변경한 것만 덮어쓰도록 로직 구성
-        // 하지만 "구글 드라이브 사진 넣어줘" 요청이므로 초기값은 드라이브 링크로 설정함.
-        // 필요시 setPhotos(JSON.parse(savedPhotos)); 로 변경 가능
-      }
+      if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
@@ -251,7 +241,7 @@ export default function RunMathApp() {
             try {
                 localStorage.setItem('runMathPhotos', JSON.stringify(updated));
             } catch(e) {
-                alert('사진 용량이 큽니다. (화면에는 보이지만 새로고침 시 사라질 수 있습니다)');
+                console.log('Storage Full');
             }
             return updated;
         });
@@ -264,7 +254,14 @@ export default function RunMathApp() {
   const PhotoUploadBox = ({ id }: { id: string }) => (
     <label style={styles.photoBox} onClick={(e) => e.stopPropagation()}>
       {photos[id] ? (
-        <img src={photos[id]!} alt="uploaded" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> 
+        <img 
+            src={photos[id]!} 
+            alt="uploaded" 
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+            }}
+        /> 
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '10px' }}>
           <CameraIcon />
@@ -277,10 +274,8 @@ export default function RunMathApp() {
 
   const handleComplete = async () => {
     if(!confirm('상담을 완료하고 구글 시트에 저장하시겠습니까?')) return;
-    
     saveCanvasState(); 
     setIsSaving(true);
-
     const payload = {
       name: studentInfo.name,
       school: `[${division}] ${studentInfo.school}`, 
@@ -292,97 +287,42 @@ export default function RunMathApp() {
       book: scheduleInfo.book,
       images: [canvasData[1], canvasRef.current?.toDataURL('image/png')]
     };
-
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(payload)
-      });
+      await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
     } catch (e) {
-      alert("인터넷 연결을 확인해주세요. (저장 실패)");
+      alert("저장 실패");
       setIsSaving(false);
       return;
     }
-
-    const newRecord = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      name: studentInfo.name,
-      school: studentInfo.school,
-      plan: selectedPlan || '미선택',
-      pPhone: contacts.parent
-    };
+    const newRecord = { id: Date.now(), date: new Date().toLocaleDateString(), name: studentInfo.name, school: studentInfo.school, plan: selectedPlan || '미선택', pPhone: contacts.parent };
     const updatedHistory = [newRecord, ...historyList];
     setHistoryList(updatedHistory);
     localStorage.setItem('runMathHistory', JSON.stringify(updatedHistory));
-
-    setTimeout(() => {
-      setIsSaving(false);
-      setIsCompleted(true);
-    }, 1000);
+    setTimeout(() => { setIsSaving(false); setIsCompleted(true); }, 1000);
   };
 
   const handleNext = () => {
     saveCanvasState();
-    if (step === 2) {
-      if (division === '고등부' && selectedPlan === '30-10-7 루프반') {
-        setStep(3); 
-      } else {
-        setStep(4); 
-      }
-    } else if (step === 3) {
-       setStep(4);
-    } else {
-       setStep(step + 1);
-    }
+    if (step === 2) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') { setStep(3); } else { setStep(4); }
+    } else if (step === 3) { setStep(4); } else { setStep(step + 1); }
   }
 
-  const handleBack = () => {
-    if (step === 4) {
-      if (division === '고등부' && selectedPlan === '30-10-7 루프반') {
-        setStep(3);
-      } else {
-        setStep(2);
-      }
-    } else {
-      setStep(step - 1);
-    }
-  }
+  const handleBack = () => { if (step === 4) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') { setStep(3); } else { setStep(2); } } else { setStep(step - 1); } }
 
-  const handleDivisionSelect = (div: string) => {
-    setDivision(div);
-    setStep(2); 
-  }
+  const handleDivisionSelect = (div: string) => { setDivision(div); setStep(2); }
 
   const getParentUrl = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const params = new URLSearchParams({
-      mode: 'parent',
-      name: studentInfo.name,
-      school: studentInfo.school,
-      division: division, 
-      time: scheduleInfo.time || '상담 후 결정',
-      book: scheduleInfo.book || '상담 후 결정',
-      date: new Date().toLocaleDateString()
-    });
+    const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() });
     return `${baseUrl}${window.location.pathname}?${params.toString()}`;
   };
 
   const handleSaveContact = () => {
-    const vcardContent = `BEGIN:VCARD
-VERSION:3.0
-FN:런수학학원
-TEL;TYPE=CELL:${TEACHER_PHONE}
-END:VCARD`;
+    const vcardContent = `BEGIN:VCARD\nVERSION:3.0\nFN:런수학학원\nTEL;TYPE=CELL:${TEACHER_PHONE}\nEND:VCARD`;
     const blob = new Blob([vcardContent], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
-    link.download = "런수학학원.vcf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    link.href = url; link.download = "런수학학원.vcf"; document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
   const handleSaveConsultation = () => {
@@ -397,52 +337,19 @@ END:VCARD`;
     card: { background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0', marginBottom: '20px' },
     input: { width: '100%', padding: '16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '15px', background: '#f9fafb', outline: 'none', boxSizing: 'border-box' as 'border-box' },
     sectionTitle: (color: string) => ({ borderLeft: `5px solid ${color}`, paddingLeft: '15px', marginBottom: '20px', fontSize: '20px', fontWeight: 'bold' }),
-    toolBtn: (isActive: boolean) => ({
-      padding: '8px 16px', borderRadius: '10px', border: isActive ? '2px solid #2563eb' : '1px solid #ddd',
-      cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' as 'bold', display: 'flex', alignItems: 'center', gap: '5px',
-      background: isActive ? '#eff6ff' : 'white', color: isActive ? '#2563eb' : '#666', transition: '0.2s', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none'
-    }),
-    button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px', userSelect: 'none' as 'none' },
-    canvasContainer: { 
-      width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', 
-      background: 'white', position: 'relative' as 'relative', overflow: 'hidden', 
-      touchAction: 'none', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none', WebkitTouchCallout: 'none' as 'none'
-    },
+    toolBtn: (isActive: boolean) => ({ padding: '8px 16px', borderRadius: '10px', border: isActive ? '2px solid #2563eb' : '1px solid #ddd', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', background: isActive ? '#eff6ff' : 'white', color: isActive ? '#2563eb' : '#666' }),
+    button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px' },
+    canvasContainer: { width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', background: 'white', position: 'relative' as 'relative', overflow: 'hidden', touchAction: 'none' },
     footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
-    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', userSelect: 'none' as 'none' },
+    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' },
     splitContainer: { display: 'flex', gap: '15px', marginTop: '20px' },
-    splitCard: (borderColor: string, bg: string, isSelected: boolean) => ({ 
-      flex: 1, padding: '25px', borderRadius: '16px', 
-      border: isSelected ? `3px solid ${borderColor}` : `1px solid #eee`, 
-      background: isSelected ? bg : 'white',
-      opacity: (selectedPlan && !isSelected) ? 0.6 : 1, 
-      display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center',
-      boxShadow: isSelected ? '0 10px 20px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)',
-      cursor: 'pointer', transition: '0.2s'
-    }),
-    photoBox: {
-      flex: 1, 
-      height: '80px', 
-      borderRadius: '8px', border: '2px dashed #ccc', 
-      background: '#f8f9fa', 
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', transition: '0.2s',
-      minWidth: '50px' 
-    },
+    splitCard: (borderColor: string, bg: string, isSelected: boolean) => ({ flex: 1, padding: '25px', borderRadius: '16px', border: isSelected ? `3px solid ${borderColor}` : `1px solid #eee`, background: isSelected ? bg : 'white', opacity: (selectedPlan && !isSelected) ? 0.6 : 1, display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center', boxShadow: isSelected ? '0 10px 20px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)', cursor: 'pointer' }),
+    photoBox: { flex: 1, height: '80px', borderRadius: '8px', border: '2px dashed #ccc', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', minWidth: '50px' },
     exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
-    divBtn: (color: string, bg: string) => ({
-      width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg,
-      fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: '0.2s'
-    }),
-    loopStep: {
-      background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb',
-      display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center',
-      textAlign: 'center' as 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative' as 'relative', zIndex: 1
-    }
+    divBtn: (color: string, bg: string) => ({ width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg, fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }),
+    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative', zIndex: 1 }
   };
 
-  // === [화면 1] 학부모님용 모바일 명함 ===
   if (isParentMode && parentData) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
