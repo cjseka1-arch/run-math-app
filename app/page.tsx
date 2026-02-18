@@ -8,12 +8,12 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUHmRX9QOKYd
 // ★★★ 선생님 전화번호 ★★★
 const TEACHER_PHONE = "01076501239";
 
-// ★★★ 구글 드라이브 이미지 (차단 방지용 고화질 썸네일 링크 사용) ★★★
+// ★★★ Imgur 이미지 주소 (보내주신 4장) ★★★
 const DRIVE_IMAGES = [
-  "https://drive.google.com/thumbnail?id=1viO3SoF_cFTvivPdaxnIyyI7CFdDJAW4&sz=w1000", // 사진 1
-  "https://drive.google.com/thumbnail?id=1mkSi3Fv83lgkLVILhqWpmPyxm6JbYApW&sz=w1000", // 사진 2
-  "https://drive.google.com/thumbnail?id=1YrA74vY0qKs6eaWlyNbBaJG_XvMPcYS4&sz=w1000", // 사진 3
-  "https://drive.google.com/thumbnail?id=1nZA_gwng79D9E10G08ueq_5zohChwfZJ&sz=w1000"  // 사진 4
+  "https://i.imgur.com/XZ5GcQX.jpeg", // 사진 1
+  "https://i.imgur.com/JDag5r6.jpeg", // 사진 2
+  "https://i.imgur.com/gzo6Yw2.jpeg", // 사진 3
+  "https://i.imgur.com/bmk6FJE.jpeg"  // 사진 4
 ];
 
 // === 아이콘 컴포넌트 ===
