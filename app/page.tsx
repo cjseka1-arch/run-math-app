@@ -8,7 +8,7 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUHmRX9QOKYd
 // ★★★ 선생님 전화번호 ★★★
 const TEACHER_PHONE = "01076501239";
 
-// ★★★ [새 사진 4장] Imgur 이미지 주소 (무조건 이거부터 나옴) ★★★
+// ★★★ Imgur 이미지 주소 (보내주신 4장) - 아이패드 차단 방지 적용됨 ★★★
 const DRIVE_IMAGES = [
   "https://i.imgur.com/XZ5GcQX.jpeg", // 사진 1
   "https://i.imgur.com/JDag5r6.jpeg", // 사진 2
@@ -34,10 +34,21 @@ const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
 const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
 const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
+const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
   const [parentData, setParentData] = useState<any>(null);
+
+  // ★ html2canvas 로드 (이미지 저장을 위한 도구)
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const script = document.createElement('script');
+      script.src = "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -78,10 +89,8 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      // ★★★ [중요] 저장소 키를 'runMathPhotos_v2'로 변경하여 기존 캐시 무시하고 새 사진 강제 로드 ★★★
       const savedPhotos = localStorage.getItem('runMathPhotos_v2');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
-      
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
     } catch (e) {
@@ -103,22 +112,18 @@ export default function RunMathApp() {
 
   useEffect(() => {
     if (step === 2 || step === 3 || step === 4 || step === 5 || isParentMode || showHistory) return; 
-
     setTool('pen');
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const resizeCanvas = () => {
       const parent = canvas.parentElement;
       if (parent) {
         const rect = parent.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1; 
-        
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         canvas.style.width = '100%';
         canvas.style.height = '100%';
-
         const context = canvas.getContext('2d');
         if (context) {
           context.scale(dpr, dpr);
@@ -130,7 +135,6 @@ export default function RunMathApp() {
           context.globalCompositeOperation = 'source-over';
           context.lineWidth = 3;
           context.strokeStyle = step === 6 ? '#ef4444' : '#1f2937'; 
-          
           if(canvasData[step]) {
             const img = new Image();
             img.src = canvasData[step];
@@ -140,15 +144,12 @@ export default function RunMathApp() {
         }
       }
     };
-
     setTimeout(resizeCanvas, 50);
     window.addEventListener('resize', resizeCanvas);
-    
     const preventTouch = (e: TouchEvent) => { if (e.target === canvas) e.preventDefault(); };
     canvas.addEventListener('touchstart', preventTouch, { passive: false });
     canvas.addEventListener('touchmove', preventTouch, { passive: false });
     canvas.addEventListener('touchend', preventTouch, { passive: false });
-
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       if(canvas) {
@@ -159,56 +160,15 @@ export default function RunMathApp() {
     };
   }, [step, isParentMode, showHistory]);
 
-  useEffect(() => {
-    if (!ctxRef.current) return;
-    if (tool === 'eraser') {
-      ctxRef.current.globalCompositeOperation = 'source-over';
-      ctxRef.current.strokeStyle = 'white'; 
-      ctxRef.current.lineWidth = 25;
-    } else {
-      ctxRef.current.globalCompositeOperation = 'source-over';
-      ctxRef.current.lineWidth = 3;
-      ctxRef.current.strokeStyle = step === 6 ? '#ef4444' : '#1f2937';
-    }
-  }, [tool, step]);
+  useEffect(() => { if (!ctxRef.current) return; if (tool === 'eraser') { ctxRef.current.globalCompositeOperation = 'source-over'; ctxRef.current.strokeStyle = 'white'; ctxRef.current.lineWidth = 25; } else { ctxRef.current.globalCompositeOperation = 'source-over'; ctxRef.current.lineWidth = 3; ctxRef.current.strokeStyle = step === 6 ? '#ef4444' : '#1f2937'; } }, [tool, step]);
 
-  const getPos = (e: any) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  };
-  const startDrawing = (e: any) => {
-    if (!ctxRef.current) return;
-    isDrawing.current = true;
-    const { x, y } = getPos(e);
-    ctxRef.current.beginPath();
-    ctxRef.current.moveTo(x, y);
-  };
-  const draw = (e: any) => {
-    if (!isDrawing.current || !ctxRef.current) return;
-    if(e.cancelable && e.preventDefault) e.preventDefault(); 
-    const { x, y } = getPos(e);
-    ctxRef.current.lineTo(x, y);
-    ctxRef.current.stroke();
-  };
-  const stopDrawing = () => {
-    if (!ctxRef.current) return;
-    isDrawing.current = false;
-    ctxRef.current.closePath();
-  };
-  const clearCanvas = () => {
-    if (!ctxRef.current || !canvasRef.current) return;
-    ctxRef.current.fillStyle = 'white';
-    ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    setCanvasData(prev => ({...prev, [step]: ''}));
-  };
+  const getPos = (e: any) => { const canvas = canvasRef.current; if (!canvas) return { x: 0, y: 0 }; const rect = canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; return { x: clientX - rect.left, y: clientY - rect.top }; };
+  const startDrawing = (e: any) => { if (!ctxRef.current) return; isDrawing.current = true; const { x, y } = getPos(e); ctxRef.current.beginPath(); ctxRef.current.moveTo(x, y); };
+  const draw = (e: any) => { if (!isDrawing.current || !ctxRef.current) return; if(e.cancelable && e.preventDefault) e.preventDefault(); const { x, y } = getPos(e); ctxRef.current.lineTo(x, y); ctxRef.current.stroke(); };
+  const stopDrawing = () => { if (!ctxRef.current) return; isDrawing.current = false; ctxRef.current.closePath(); };
+  const clearCanvas = () => { if (!ctxRef.current || !canvasRef.current) return; ctxRef.current.fillStyle = 'white'; ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height); setCanvasData(prev => ({...prev, [step]: ''})); };
 
-  const handleRefresh = () => {
-    if (confirm('처음 화면으로 돌아가시겠습니까?')) window.location.href = window.location.pathname;
-  };
+  const handleRefresh = () => { if (confirm('처음 화면으로 돌아가시겠습니까?')) window.location.href = window.location.pathname; };
 
   const compressImage = async (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -221,13 +181,7 @@ export default function RunMathApp() {
         const scaleSize = maxWidth / img.width;
         canvas.width = maxWidth;
         canvas.height = img.height * scaleSize;
-
-        if (ctx) {
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.4)); 
-        } else {
-            resolve(img.src);
-        }
+        if (ctx) { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.4)); } else { resolve(img.src); }
       };
     });
   };
@@ -239,39 +193,19 @@ export default function RunMathApp() {
         const compressedBase64 = await compressImage(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try {
-                // ★★★ [중요] 저장소 키 변경됨 (v2) ★★★
-                localStorage.setItem('runMathPhotos_v2', JSON.stringify(updated));
-            } catch(e) {
-                console.log('Storage Full');
-            }
+            try { localStorage.setItem('runMathPhotos_v2', JSON.stringify(updated)); } catch(e) { console.log('Storage Full'); }
             return updated;
         });
-      } catch (err) {
-        alert("사진 처리 중 오류가 발생했습니다.");
-      }
+      } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
     }
   };
 
-  // ★★★ [아이패드 보안 차단 방지 적용] ★★★
   const PhotoUploadBox = ({ id }: { id: string }) => (
     <label style={styles.photoBox} onClick={(e) => e.stopPropagation()}>
       {photos[id] ? (
-        <img 
-            src={photos[id]!} 
-            alt="Img" 
-            referrerPolicy="no-referrer" // ★ Imgur 차단 방지 핵심
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none'; // 에러나면 숨김
-            }}
-        /> 
+        <img src={photos[id]!} alt="Img" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> 
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '10px' }}>
-          <CameraIcon />
-          <span style={{ marginTop: '2px' }}>+</span>
-        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999', fontSize: '10px' }}><CameraIcon /><span style={{ marginTop: '2px' }}>+</span></div>
       )}
       <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, id)} style={{ display: 'none' }} />
     </label>
@@ -279,105 +213,26 @@ export default function RunMathApp() {
 
   const handleComplete = async () => {
     if(!confirm('상담을 완료하고 구글 시트에 저장하시겠습니까?')) return;
-    
-    saveCanvasState(); 
-    setIsSaving(true);
-
-    const payload = {
-      name: studentInfo.name,
-      school: `[${division}] ${studentInfo.school}`, 
-      plan: selectedPlan || '미선택',
-      pPhone: contacts.parent,
-      sPhone: contacts.student,
-      request: parentData ? parentData.request : '', 
-      time: scheduleInfo.time,
-      book: scheduleInfo.book,
-      images: [canvasData[1], canvasRef.current?.toDataURL('image/png')]
-    };
-
-    try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      alert("인터넷 연결을 확인해주세요. (저장 실패)");
-      setIsSaving(false);
-      return;
-    }
-
-    const newRecord = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      name: studentInfo.name,
-      school: studentInfo.school,
-      plan: selectedPlan || '미선택',
-      pPhone: contacts.parent
-    };
+    saveCanvasState(); setIsSaving(true);
+    const payload = { name: studentInfo.name, school: `[${division}] ${studentInfo.school}`, plan: selectedPlan || '미선택', pPhone: contacts.parent, sPhone: contacts.student, request: parentData ? parentData.request : '', time: scheduleInfo.time, book: scheduleInfo.book, images: [canvasData[1], canvasRef.current?.toDataURL('image/png')] };
+    try { await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); } catch (e) { alert("저장 실패"); setIsSaving(false); return; }
+    const newRecord = { id: Date.now(), date: new Date().toLocaleDateString(), name: studentInfo.name, school: studentInfo.school, plan: selectedPlan || '미선택', pPhone: contacts.parent };
     const updatedHistory = [newRecord, ...historyList];
     setHistoryList(updatedHistory);
     localStorage.setItem('runMathHistory', JSON.stringify(updatedHistory));
-
-    setTimeout(() => {
-      setIsSaving(false);
-      setIsCompleted(true);
-    }, 1000);
+    setTimeout(() => { setIsCompleted(true); setIsSaving(false); }, 1000);
   };
 
-  const handleNext = () => {
-    saveCanvasState();
-    if (step === 2) {
-      if (division === '고등부' && selectedPlan === '30-10-7 루프반') {
-        setStep(3); 
-      } else {
-        setStep(4); 
-      }
-    } else if (step === 3) {
-       setStep(4);
-    } else {
-       setStep(step + 1);
-    }
-  }
+  const handleNext = () => { saveCanvasState(); if (step === 2) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(4); } else if (step === 3) setStep(4); else setStep(step + 1); }
+  const handleBack = () => { if (step === 4) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(2); } else setStep(step - 1); }
+  const handleDivisionSelect = (div: string) => { setDivision(div); setStep(2); }
+  const getParentUrl = () => { const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); return `${baseUrl}${window.location.pathname}?${params.toString()}`; };
 
-  const handleBack = () => {
-    if (step === 4) {
-      if (division === '고등부' && selectedPlan === '30-10-7 루프반') {
-        setStep(3);
-      } else {
-        setStep(2);
-      }
-    } else {
-      setStep(step - 1);
-    }
-  }
-
-  const handleDivisionSelect = (div: string) => {
-    setDivision(div);
-    setStep(2); 
-  }
-
-  const getParentUrl = () => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const params = new URLSearchParams({
-      mode: 'parent',
-      name: studentInfo.name,
-      school: studentInfo.school,
-      division: division, 
-      time: scheduleInfo.time || '상담 후 결정',
-      book: scheduleInfo.book || '상담 후 결정',
-      date: new Date().toLocaleDateString()
-    });
-    return `${baseUrl}${window.location.pathname}?${params.toString()}`;
-  };
-
+  // ★★★ [수정 1] 전화번호 저장 기능 (안드로이드/iOS 호환 VCF)
   const handleSaveContact = () => {
-    const vcardContent = `BEGIN:VCARD
-VERSION:3.0
-FN:런수학학원
-TEL;TYPE=CELL:${TEACHER_PHONE}
-END:VCARD`;
-    const blob = new Blob([vcardContent], { type: "text/vcard;charset=utf-8" });
+    // VCF 파일 생성 (UTF-8 인코딩)
+    const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:런수학학원\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\nEND:VCARD`;
+    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -387,8 +242,36 @@ END:VCARD`;
     document.body.removeChild(link);
   };
 
-  const handleSaveConsultation = () => {
-    window.print(); 
+  // ★★★ [수정 2] 화면을 이미지로 저장 (html2canvas 사용)
+  const handleSaveImage = () => {
+    const element = document.getElementById('mobile-card');
+    if (!element) return;
+    
+    // @ts-ignore
+    if (window.html2canvas) {
+        // @ts-ignore
+        window.html2canvas(element, { useCORS: true, scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `${parentData.name}_상담내용.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    } else {
+        alert("이미지 저장 기능을 준비중입니다. 1초 뒤에 다시 눌러주세요.");
+    }
+  };
+
+  // ★★★ [신규] 전화번호 + 이미지 동시에 저장 (순차 실행) ★★★
+  const handleSaveEverything = async () => {
+    if(!confirm("연락처와 상담 내용을 모두 저장하시겠습니까?")) return;
+    
+    // 1. 연락처 저장 시도
+    handleSaveContact();
+
+    // 2. 1초 대기 후 이미지 저장 (브라우저 차단 방지)
+    setTimeout(() => {
+        handleSaveImage();
+    }, 1000);
   };
 
   const styles = {
@@ -399,62 +282,32 @@ END:VCARD`;
     card: { background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0', marginBottom: '20px' },
     input: { width: '100%', padding: '16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '15px', background: '#f9fafb', outline: 'none', boxSizing: 'border-box' as 'border-box' },
     sectionTitle: (color: string) => ({ borderLeft: `5px solid ${color}`, paddingLeft: '15px', marginBottom: '20px', fontSize: '20px', fontWeight: 'bold' }),
-    toolBtn: (isActive: boolean) => ({
-      padding: '8px 16px', borderRadius: '10px', border: isActive ? '2px solid #2563eb' : '1px solid #ddd',
-      cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' as 'bold', display: 'flex', alignItems: 'center', gap: '5px',
-      background: isActive ? '#eff6ff' : 'white', color: isActive ? '#2563eb' : '#666', transition: '0.2s', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none'
-    }),
-    button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px', userSelect: 'none' as 'none' },
-    canvasContainer: { 
-      width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', 
-      background: 'white', position: 'relative' as 'relative', overflow: 'hidden', 
-      touchAction: 'none', userSelect: 'none' as 'none', WebkitUserSelect: 'none' as 'none', WebkitTouchCallout: 'none' as 'none'
-    },
+    toolBtn: (isActive: boolean) => ({ padding: '8px 16px', borderRadius: '10px', border: isActive ? '2px solid #2563eb' : '1px solid #ddd', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', background: isActive ? '#eff6ff' : 'white', color: isActive ? '#2563eb' : '#666' }),
+    button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px' },
+    canvasContainer: { width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', background: 'white', position: 'relative' as 'relative', overflow: 'hidden', touchAction: 'none' },
     footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
-    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', userSelect: 'none' as 'none' },
+    refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' },
     splitContainer: { display: 'flex', gap: '15px', marginTop: '20px' },
-    splitCard: (borderColor: string, bg: string, isSelected: boolean) => ({ 
-      flex: 1, padding: '25px', borderRadius: '16px', 
-      border: isSelected ? `3px solid ${borderColor}` : `1px solid #eee`, 
-      background: isSelected ? bg : 'white',
-      opacity: (selectedPlan && !isSelected) ? 0.6 : 1, 
-      display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center',
-      boxShadow: isSelected ? '0 10px 20px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)',
-      cursor: 'pointer', transition: '0.2s'
-    }),
-    photoBox: {
-      flex: 1, // ★ 한 줄에서 균등 분할
-      height: '80px', // 높이를 살짝 줄여서 한줄에 4개 들어갈 때 비율 조정
-      borderRadius: '8px', border: '2px dashed #ccc', 
-      background: '#f8f9fa', 
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', transition: '0.2s',
-      minWidth: '50px' // 너무 작아지지 않게 최소 폭 설정
-    },
+    splitCard: (borderColor: string, bg: string, isSelected: boolean) => ({ flex: 1, padding: '25px', borderRadius: '16px', border: isSelected ? `3px solid ${borderColor}` : `1px solid #eee`, background: isSelected ? bg : 'white', opacity: (selectedPlan && !isSelected) ? 0.6 : 1, display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center', boxShadow: isSelected ? '0 10px 20px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)', cursor: 'pointer' }),
+    photoBox: { flex: 1, height: '80px', borderRadius: '8px', border: '2px dashed #ccc', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', minWidth: '50px' },
     exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
-    divBtn: (color: string, bg: string) => ({
-      width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg,
-      fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: '0.2s'
-    }),
-    loopStep: {
-      background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb',
-      display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center',
-      textAlign: 'center' as 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative' as 'relative', zIndex: 1
-    }
+    divBtn: (color: string, bg: string) => ({ width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg, fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }),
+    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative', zIndex: 1 }
   };
 
   // === [화면 1] 학부모님용 모바일 명함 ===
   if (isParentMode && parentData) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
-        <div style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+        {/* 캡처할 영역 ID 지정 */}
+        <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
           
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
+          {/* 버튼 영역 (캡처 시에는 숨겨짐) */}
+          <div data-html2canvas-ignore="true" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
             <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
                 <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' }}>
                 <PhoneIcon /> 전화 걸기
@@ -491,9 +344,14 @@ END:VCARD`;
           </div>
         </div>
 
-        <div style={{ marginTop: '20px' }}>
-          <button onClick={handleSaveConsultation} style={{ width: '100%', border: 'none', background: '#475569', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-             <DownloadIcon /> 상담 내용 저장하기 (PDF)
+        {/* 하단 버튼 영역 */}
+        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <button onClick={handleSaveImage} style={{ width: '100%', border: 'none', background: '#475569', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+             <ImageIcon /> 상담 내용만 이미지로 저장
+          </button>
+          
+          <button onClick={handleSaveEverything} style={{ width: '100%', border: 'none', background: 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)' }}>
+             <CheckIcon /> ✨ 연락처 & 상담내용 한번에 저장
           </button>
         </div>
       </div>
@@ -680,7 +538,7 @@ END:VCARD`;
                         <div style={{ fontSize: '12px', color: '#666' }}>풀이/채점 (1:5)</div>
                       </div>
                     </div>
-                    {/* ★ 초등부 사진 4장 한줄 배치 */}
+                    {/* ★ 초등부 사진 4장 한줄 배치 (요청 유지) */}
                     <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="elem1" />
                       <PhotoUploadBox id="elem2" />
@@ -757,7 +615,7 @@ END:VCARD`;
                          <div style={{ fontSize: '11px', color: '#78350f', textAlign: 'center' }}>채점, 풀이, 오답 정리</div>
                       </div>
                     </div>
-                    {/* ★ 중등부 사진 4장 한줄 배치 */}
+                    {/* ★ 중등부 사진 4장 한줄 배치 (요청 유지) */}
                     <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
                       <PhotoUploadBox id="mid1" />
                       <PhotoUploadBox id="mid2" />
