@@ -32,15 +32,14 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>;
 const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
-const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
-const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
+const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
   const [parentData, setParentData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false); 
 
+  // ★ html2canvas 로드
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const script = document.createElement('script');
@@ -89,7 +88,7 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v3');
+      const savedPhotos = localStorage.getItem('runMathPhotos_v4');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
@@ -149,7 +148,7 @@ export default function RunMathApp() {
     const preventTouch = (e: TouchEvent) => { if (e.target === canvas) e.preventDefault(); };
     canvas.addEventListener('touchstart', preventTouch, { passive: false });
     canvas.addEventListener('touchmove', preventTouch, { passive: false });
-    canvas.addEventListener('touchmove', preventTouch, { passive: false });
+    canvas.addEventListener('touchend', preventTouch, { passive: false });
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       if(canvas) {
@@ -193,7 +192,7 @@ export default function RunMathApp() {
         const compressedBase64 = await compressImage(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try { localStorage.setItem('runMathPhotos_v3', JSON.stringify(updated)); } catch(e) {}
+            try { localStorage.setItem('runMathPhotos_v4', JSON.stringify(updated)); } catch(e) {}
             return updated;
         });
       } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
@@ -246,11 +245,11 @@ export default function RunMathApp() {
     document.body.removeChild(link);
   };
 
-  // ★★★ [통합 저장] 사진첩 저장 -> 연락처 저장 ★★★
+  // ★★★ [통합 저장 기능] 이미지 캡처 -> 연락처 팝업 ★★★
   const handleSaveEverything = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    alert("📸 상담 내용을 이미지로 저장합니다.\n(저장 직후 연락처 등록 창이 뜹니다!)");
+    alert("📸 1단계: 상담 내용을 사진첩에 저장합니다.\n(저장 직후 2단계 연락처 창이 뜹니다!)");
 
     const element = document.getElementById('mobile-card');
     if (element && 
@@ -270,33 +269,33 @@ export default function RunMathApp() {
         }
     }
 
-    // 2초 후 연락처 팝업 띄우기
+    // 이미지 다운로드 2초 후 연락처 팝업 실행
     setTimeout(() => {
         handleSaveContact();
         setIsProcessing(false);
     }, 2000);
   };
 
-  // ★★★ Vercel 에러 방지를 위해 position: 'relative' as 'relative' 적용 완료 ★★★
-  const styles = {
+  // ★★★ Vercel 에러 방지 무적 권한(any) 부여 완료 ★★★
+  const styles: any = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
     title: { margin: 0, color: '#1e3a8a', fontSize: '22px', fontWeight: 'bold' },
     badge: { background: '#f3f4f6', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', color: '#666', marginRight: '10px' },
     card: { background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0', marginBottom: '20px' },
-    input: { width: '100%', padding: '16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '15px', background: '#f9fafb', outline: 'none', boxSizing: 'border-box' as 'border-box' },
+    input: { width: '100%', padding: '16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '15px', background: '#f9fafb', outline: 'none', boxSizing: 'border-box' },
     sectionTitle: (color: string) => ({ borderLeft: `5px solid ${color}`, paddingLeft: '15px', marginBottom: '20px', fontSize: '20px', fontWeight: 'bold' }),
     toolBtn: (isActive: boolean) => ({ padding: '8px 16px', borderRadius: '10px', border: isActive ? '2px solid #2563eb' : '1px solid #ddd', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', background: isActive ? '#eff6ff' : 'white', color: isActive ? '#2563eb' : '#666' }),
     button: { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s', height: '50px' },
-    canvasContainer: { width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', background: 'white', position: 'relative' as 'relative', overflow: 'hidden', touchAction: 'none' },
-    footer: { position: 'fixed' as 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
+    canvasContainer: { width: '100%', height: '400px', border: '2px dashed #ccc', borderRadius: '16px', background: 'white', position: 'relative', overflow: 'hidden', touchAction: 'none' },
+    footer: { position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '15px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', zIndex: 50 },
     refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' },
     splitContainer: { display: 'flex', gap: '15px', marginTop: '20px' },
-    splitCard: (borderColor: string, bg: string, isSelected: boolean) => ({ flex: 1, padding: '25px', borderRadius: '16px', border: isSelected ? `3px solid ${borderColor}` : `1px solid #eee`, background: isSelected ? bg : 'white', opacity: (selectedPlan && !isSelected) ? 0.6 : 1, display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', textAlign: 'center' as 'center', boxShadow: isSelected ? '0 10px 20px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)', cursor: 'pointer' }),
-    photoBox: { flex: 1, height: '80px', borderRadius: '8px', border: '2px dashed #ccc', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', minWidth: '50px' },
+    splitCard: (borderColor: string, bg: string, isSelected: boolean) => ({ flex: 1, padding: '25px', borderRadius: '16px', border: isSelected ? `3px solid ${borderColor}` : `1px solid #eee`, background: isSelected ? bg : 'white', opacity: (selectedPlan && !isSelected) ? 0.6 : 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxShadow: isSelected ? '0 10px 20px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.05)', cursor: 'pointer' }),
+    photoBox: { flex: 1, height: '80px', borderRadius: '8px', border: '2px dashed #ccc', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', minWidth: '50px' },
     exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
     divBtn: (color: string, bg: string) => ({ width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg, fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }),
-    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' as 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative' as 'relative', zIndex: 1 }
+    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative', zIndex: 1 }
   };
 
   // === [화면 1] 학부모님용 모바일 명함 ===
@@ -304,15 +303,16 @@ export default function RunMathApp() {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
         
-        <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+        {/* 캡처할 영역 ID 지정 */}
+        <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' } as any}>
           
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' } as any}>
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
 
-          <div data-html2canvas-ignore="true" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' }}>
+          <div data-html2canvas-ignore="true" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' } as any}>
             <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
-                <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' }}>
+                <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' } as any}>
                 <PhoneIcon /> 전화 걸기
                 </div>
             </a>
@@ -321,14 +321,14 @@ export default function RunMathApp() {
           <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
           <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>
           
-          <div style={{ textAlign: 'left' }}>
+          <div style={{ textAlign: 'left' as any }}>
             <h3 style={{ fontSize: '18px', color: '#333', marginBottom: '15px' }}>📋 상담 결과 요약</h3>
             <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', marginBottom: '10px' }}>
               <span style={{ color: '#64748b', fontSize: '12px' }}>학생 이름</span>
               <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>{parentData.name} ({parentData.school})</div>
             </div>
             {parentData.division && (
-               <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+               <div style={{ textAlign: 'center' as any, marginBottom: '10px' }}>
                  <span style={{ background: '#333', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '12px' }}>{parentData.division}</span>
                </div>
             )}
@@ -340,7 +340,7 @@ export default function RunMathApp() {
               <span style={{ color: '#ea580c', fontSize: '12px', fontWeight: 'bold' }}>사용 교재</span>
               <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#9a3412', marginTop: '5px' }}>{parentData.book}</div>
             </div>
-            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px', textAlign: 'center' }}>상담일: {parentData.date}</p>
+            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px', textAlign: 'center' as any }}>상담일: {parentData.date}</p>
           </div>
         </div>
 
@@ -348,12 +348,12 @@ export default function RunMathApp() {
           <button 
             onClick={handleSaveEverything} 
             disabled={isProcessing}
-            style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' }}
+            style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' } as any}
           >
-             {isProcessing ? '⏳ 저장 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
+             {isProcessing ? '⏳ 저장 중입니다...' : <><CheckCircleIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
           </button>
-          <p style={{ textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px' }}>
-            * 사진첩에 저장 후, 자동으로 연락처 등록 화면이 열립니다.
+          <p style={{ textAlign: 'center' as any, color: '#666', fontSize: '12px', marginTop: '10px' }}>
+            * 사진첩에 저장 후, 자동으로 연락처 등록 창이 뜹니다.
           </p>
         </div>
       </div>
@@ -369,11 +369,11 @@ export default function RunMathApp() {
             <button onClick={() => setShowHistory(false)} style={styles.refreshBtn}>✕ 닫기</button>
          </div>
          {historyList.length === 0 ? (
-           <div style={{ textAlign: 'center', padding: '50px 0', color: '#999' }}>저장된 상담 기록이 없습니다.</div>
+           <div style={{ textAlign: 'center' as any, padding: '50px 0', color: '#999' }}>저장된 상담 기록이 없습니다.</div>
          ) : (
            historyList.map((record) => (
              <div key={record.id} style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #eee', marginBottom: '15px' }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' } as any}>
                  <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{record.name}</span>
                  <span style={{ fontSize: '14px', color: '#666' }}>{record.date}</span>
                </div>
@@ -389,10 +389,10 @@ export default function RunMathApp() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center' } as any}>
           <h1 style={styles.title}>런수학학원</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' } as any}>
           {!isCompleted && (
             <>
               <button onClick={() => setShowHistory(true)} style={styles.refreshBtn}>
@@ -408,21 +408,21 @@ export default function RunMathApp() {
       </div>
 
       {isCompleted ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-          <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+        <div style={{ textAlign: 'center' as any, padding: '60px 20px', background: 'white', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+          <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' } as any}>
             <CheckIcon />
           </div>
           <h2 style={{ fontSize: '28px', marginBottom: '10px', fontWeight: 'bold' }}>상담 저장 완료!</h2>
           <p style={{ color: '#666', marginBottom: '30px' }}>
             학부모님 핸드폰 카메라로<br/>아래 <strong>QR 코드</strong>를 보여주세요.
           </p>
-          <div style={{ background: 'white', padding: '20px', borderRadius: '20px', border: '2px solid #2563eb', display: 'inline-block', boxShadow: '0 10px 30px rgba(37, 99, 235, 0.2)' }}>
+          <div style={{ background: 'white', padding: '20px', borderRadius: '20px', border: '2px solid #2563eb', display: 'inline-block', boxShadow: '0 10px 30px rgba(37, 99, 235, 0.2)' } as any}>
             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getParentUrl())}`} alt="QR" style={{ width: '250px', height: '250px' }} />
             <p style={{marginTop: '15px', color: '#2563eb', fontSize: '16px', fontWeight: 'bold'}}>✨ 런수학 모바일 명함 전송</p>
           </div>
           <div style={{ marginTop: '30px', color: '#888', fontSize: '14px' }}>* 구글 시트 '상담대기' 탭에 저장되었습니다.<br/>(등록생 체크 시 자동 이동)</div>
           <br />
-          <button onClick={() => window.location.reload()} style={{ ...styles.button, background: '#1f2937', color: 'white', marginTop: '40px', width: '100%', justifyContent: 'center' }}>새로운 상담 시작하기</button>
+          <button onClick={() => window.location.reload()} style={{ ...styles.button, background: '#1f2937', color: 'white', marginTop: '40px', width: '100%', justifyContent: 'center' } as any}>새로운 상담 시작하기</button>
         </div>
       ) : (
         <>
@@ -450,9 +450,9 @@ export default function RunMathApp() {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', marginTop: '40px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', marginTop: '40px' } as any}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#555', fontWeight: 'bold' }}>초기 진단 (필기)</h3>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px' } as any}>
                   <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}><PenIcon /> 펜</button>
                   <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}><EraserIcon /> 지우개</button>
                   <button onClick={clearCanvas} style={{ ...styles.toolBtn(false), color: '#ef4444', borderColor: '#fee2e2' }}><TrashIcon /> 비우기</button>
@@ -474,11 +474,9 @@ export default function RunMathApp() {
                 2. {division} 맞춤 프로그램
               </h2>
 
-              {/* [고등부] 분리된 화면 1: 반 선택만 표시 */}
               {division === '고등부' && (
                 <div>
                   <div style={styles.splitContainer}>
-                    {/* 소수 정예반 카드 */}
                     <div style={styles.splitCard('#2563eb', '#eff6ff', selectedPlan === '소수 정예반')} onClick={() => setSelectedPlan('소수 정예반')}>
                       <div style={{ marginBottom: '15px' }}><GroupIcon /></div>
                       <h3 style={{ margin: '0 0 10px 0', color: '#1e3a8a', fontSize: '20px', fontWeight: 'bold' }}>소수 정예반</h3>
@@ -488,14 +486,12 @@ export default function RunMathApp() {
                         <li><strong>개별 맞춤 진도 및 교재</strong></li>
                         <li><strong>철저한 오답 및 학습 관리</strong></li>
                       </ul>
-                      {/* ★ 고등부 소수정예 사진 2장 */}
-                      <div style={{ display: 'flex', gap: '5px', width: '100%', marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', gap: '5px', width: '100%', marginTop: 'auto' } as any}>
                         <PhotoUploadBox id="small1" />
                         <PhotoUploadBox id="small2" />
                       </div>
                     </div>
 
-                    {/* 루프반 카드 */}
                     <div style={styles.splitCard('#ea580c', '#fff7ed', selectedPlan === '30-10-7 루프반')} onClick={() => setSelectedPlan('30-10-7 루프반')}>
                       <div style={{ marginBottom: '15px' }}><LoopIcon /></div>
                       <h3 style={{ margin: '0 0 10px 0', color: '#9a3412', fontSize: '20px', fontWeight: 'bold' }}>30-10-7 루프반</h3>
@@ -506,42 +502,39 @@ export default function RunMathApp() {
                         <li><strong>7분: 당일 개념 테스트</strong></li>
                         <li style={{ color: '#ea580c', fontWeight: 'bold', marginTop: '5px' }}>🔄 (10분+7분) 무한 반복</li>
                       </ul>
-                      {/* ★ 고등부 루프반 사진 2장 */}
-                      <div style={{ display: 'flex', gap: '5px', width: '100%', marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', gap: '5px', width: '100%', marginTop: 'auto' } as any}>
                         <PhotoUploadBox id="loop1" />
                         <PhotoUploadBox id="loop2" />
                       </div>
                     </div>
                   </div>
                   {selectedPlan === '30-10-7 루프반' && (
-                     <div style={{ marginTop: '20px', textAlign: 'center', color: '#ea580c', fontWeight: 'bold', animation: 'fadeIn 0.5s' }}>
+                     <div style={{ marginTop: '20px', textAlign: 'center' as any, color: '#ea580c', fontWeight: 'bold', animation: 'fadeIn 0.5s' }}>
                        👇 '다음' 버튼을 누르면 루프반 상세 안내로 이어집니다.
                      </div>
                   )}
                 </div>
               )}
 
-              {/* [초등부] */}
               {division === '초등부' && (
-                <div style={{ textAlign: 'left', padding: '10px' }}>
+                <div style={{ textAlign: 'left' as any, padding: '10px' }}>
                   <div style={{ background: '#fffbeb', border: '2px solid #fcd34d', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
-                    <h3 style={{ margin: '0 0 15px 0', fontSize: '20px', color: '#92400e', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '20px', color: '#92400e', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' } as any}>
                       <StarIcon /> 1:5 듀얼 케어 시스템
                     </h3>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #fae8ff' }}>
-                      <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid #eee' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #fae8ff' } as any}>
+                      <div style={{ flex: 1, textAlign: 'center' as any, borderRight: '1px solid #eee' }}>
                         <div style={{ fontSize: '24px', marginBottom: '5px' }}>👨‍🏫</div>
                         <div style={{ fontWeight: 'bold', color: '#333' }}>메인 선생님</div>
                         <div style={{ fontSize: '12px', color: '#666' }}>핵심 개념 설명</div>
                       </div>
-                      <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ flex: 1, textAlign: 'center' as any }}>
                         <div style={{ fontSize: '24px', marginBottom: '5px' }}>👩‍🏫</div>
                         <div style={{ fontWeight: 'bold', color: '#333' }}>밀착 튜터링</div>
                         <div style={{ fontSize: '12px', color: '#666' }}>풀이/채점 (1:5)</div>
                       </div>
                     </div>
-                    {/* ★ 초등부 사진 4장 한줄 배치 */}
-                    <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
+                    <div style={{ display: 'flex', gap: '5px', marginTop: '15px' } as any}>
                       <PhotoUploadBox id="elem1" />
                       <PhotoUploadBox id="elem2" />
                       <PhotoUploadBox id="elem3" />
@@ -550,7 +543,7 @@ export default function RunMathApp() {
                   </div>
                   <div style={{ marginBottom: '25px' }}>
                     <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333', fontWeight: 'bold' }}>📚 수준별 맞춤 교재 (디딤돌)</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' as any, gap: '8px' }}>
                       {['기본', '기본+응용', '응용', '최상위S', '최상위'].map((book, idx) => (
                         <div key={book} style={{ 
                           background: idx >= 3 ? '#fff1f2' : '#f0f9ff', 
@@ -558,7 +551,7 @@ export default function RunMathApp() {
                           padding: '10px 15px', borderRadius: '10px', 
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           fontSize: '14px', fontWeight: 'bold', color: '#444'
-                        }}>
+                        } as any}>
                           <span>Step {idx + 1}. {book}</span>
                         </div>
                       ))}
@@ -575,27 +568,26 @@ export default function RunMathApp() {
                 </div>
               )}
 
-              {/* [중등부] */}
               {division === '중등부' && (
-                <div style={{ textAlign: 'left', padding: '10px' }}>
+                <div style={{ textAlign: 'left' as any, padding: '10px' }}>
                   <div style={{ marginBottom: '30px' }}>
                     <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#333', fontWeight: 'bold', borderLeft:'4px solid #10b981', paddingLeft:'10px' }}>📚 개인별 맞춤 교재</h3>
-                    <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
-                      <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' as any }}>
+                      <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: '15px' } as any}>
                         <div style={{ background: '#10b981', color: 'white', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>기본</div>
                         <div>
                           <div style={{ fontWeight: 'bold', color: '#166534' }}>개념원리(올리드) + 쎈B</div>
                           <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>탄탄한 개념과 유형 학습</div>
                         </div>
                       </div>
-                      <div style={{ background: '#fff7ed', padding: '15px', borderRadius: '12px', border: '1px solid #fdba74', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      <div style={{ background: '#fff7ed', padding: '15px', borderRadius: '12px', border: '1px solid #fdba74', display: 'flex', alignItems: 'center', gap: '15px' } as any}>
                         <div style={{ background: '#f97316', color: 'white', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>심화</div>
                         <div>
                           <div style={{ fontWeight: 'bold', color: '#9a3412' }}>일품 / 블랙라벨 / A급</div>
                           <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>학생 성취도별 선택 심화</div>
                         </div>
                       </div>
-                      <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '12px', fontSize: '13px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '12px', fontSize: '13px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' } as any}>
                         <span>🚧</span>
                         <span><b>전 학년 개념 구멍 발생 시</b> 즉시 해당 파트 보강 후 진도 복귀</span>
                       </div>
@@ -604,21 +596,20 @@ export default function RunMathApp() {
 
                   <div style={{ marginBottom: '30px' }}>
                     <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#333', fontWeight: 'bold', borderLeft:'4px solid #2563eb', paddingLeft:'10px' }}>👨‍🏫 1:6 소수 정예 튜터링</h3>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch', height: '100px' }}>
-                      <div style={{ flex: 1, background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch', height: '100px' } as any}>
+                      <div style={{ flex: 1, background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
                          <div style={{ fontSize: '20px', marginBottom: '5px' }}>👨‍🏫</div>
                          <div style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '14px' }}>Main 선생님</div>
-                         <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center' }}>개념 설명 & 진도 관리</div>
+                         <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center' as any }}>개념 설명 & 진도 관리</div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', color: '#94a3b8' }}>➜</div>
-                      <div style={{ flex: 1, background: '#fffbeb', borderRadius: '12px', border: '1px solid #fcd34d', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', color: '#94a3b8' } as any}>➜</div>
+                      <div style={{ flex: 1, background: '#fffbeb', borderRadius: '12px', border: '1px solid #fcd34d', display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
                          <div style={{ fontSize: '20px', marginBottom: '5px' }}>📝</div>
                          <div style={{ fontWeight: 'bold', color: '#b45309', fontSize: '14px' }}>튜터링 (1:6)</div>
-                         <div style={{ fontSize: '11px', color: '#78350f', textAlign: 'center' }}>채점, 풀이, 오답 정리</div>
+                         <div style={{ fontSize: '11px', color: '#78350f', textAlign: 'center' as any }}>채점, 풀이, 오답 정리</div>
                       </div>
                     </div>
-                    {/* ★ 중등부 사진 4장 한줄 배치 */}
-                    <div style={{ display: 'flex', gap: '5px', marginTop: '15px' }}>
+                    <div style={{ display: 'flex', gap: '5px', marginTop: '15px' } as any}>
                       <PhotoUploadBox id="mid1" />
                       <PhotoUploadBox id="mid2" />
                       <PhotoUploadBox id="mid3" />
@@ -627,15 +618,15 @@ export default function RunMathApp() {
                   </div>
 
                   <div style={{ background: '#fafafa', padding: '20px', borderRadius: '16px', border: '1px solid #e5e5e5' }}>
-                    <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#333', fontWeight: 'bold', textAlign: 'center' }}>🔄 시험대비 '무한 루프' (3~4주)</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', position: 'relative' }}>
+                    <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#333', fontWeight: 'bold', textAlign: 'center' as any }}>🔄 시험대비 '무한 루프' (3~4주)</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', position: 'relative' } as any}>
                       <div style={styles.loopStep}><span style={{ fontSize: '12px', color: '#2563eb', fontWeight: 'bold' }}>STEP 1</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>개인별 시험지</div></div>
                       <div style={styles.loopStep}><span style={{ fontSize: '12px', color: '#ca8a04', fontWeight: 'bold' }}>STEP 2</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>40분 실전 Check</div></div>
                       <div style={styles.loopStep}><span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 'bold' }}>STEP 3</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>채점 및 피드백</div></div>
                       <div style={{ ...styles.loopStep, border: '2px solid #ef4444', background: '#fef2f2' }}><span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 'bold' }}>STEP 4</span><div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '5px' }}>오답 & 재시험</div></div>
-                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'white', padding: '5px 10px', borderRadius: '20px', border: '1px solid #ddd', fontSize: '12px', fontWeight: 'bold', color: '#ef4444', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>↻ 반복</div>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'white', padding: '5px 10px', borderRadius: '20px', border: '1px solid #ddd', fontSize: '12px', fontWeight: 'bold', color: '#ef4444', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' } as any}>↻ 반복</div>
                     </div>
-                    <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginTop: '15px' }}>* 틀린 문제는 유사 문제로 변형되어 완벽히 이해할 때까지 평균 2회 이상 반복합니다.</p>
+                    <p style={{ textAlign: 'center' as any, fontSize: '13px', color: '#666', marginTop: '15px' }}>* 틀린 문제는 유사 문제로 변형되어 완벽히 이해할 때까지 평균 2회 이상 반복합니다.</p>
                   </div>
                 </div>
               )}
@@ -655,7 +646,7 @@ export default function RunMathApp() {
                   학원 자체 온라인 시스템을 통해<br/>
                   모든 학습 이력이 데이터로 기록됩니다.
                 </p>
-                <div style={{ width: '100%', height: '500px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' }}>
+                <div style={{ width: '100%', height: '500px', borderRadius: '16px', border: '4px solid #333', background: 'black', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative' } as any}>
                   <iframe src="https://script.google.com/macros/s/AKfycbyy4vL-1KwNGwTb_ZD7P28eLjKR4gN_E6ShGCS3eoKGhEjGGNZkrf-YXkitzwc1UBkN/exec" style={{ width: '100%', height: '100%', border: 'none' }} title="Run Math Video System" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation" allowFullScreen />
                 </div>
               </div>
@@ -666,18 +657,18 @@ export default function RunMathApp() {
                    인간은 학습 1시간 후 50%를 망각합니다.<br/>
                    런수학은 과학적인 3단계 복습 주기를 설계했습니다.
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', background: 'white', borderRadius: '12px' }}>
-                  <div style={{ textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', background: 'white', borderRadius: '12px' } as any}>
+                  <div style={{ textAlign: 'center' as any }}>
                     <div style={{ fontSize: '20px', marginBottom: '5px' }}>1️⃣</div>
                     <div style={{ fontWeight: 'bold', fontSize: '14px' }}>당일</div>
                   </div>
                   <div style={{ color: '#ccc' }}>➜</div>
-                  <div style={{ textAlign: 'center' }}>
+                  <div style={{ textAlign: 'center' as any }}>
                     <div style={{ fontSize: '20px', marginBottom: '5px' }}>2️⃣</div>
                     <div style={{ fontWeight: 'bold', color: '#be123c', fontSize: '14px' }}>5일 후</div>
                   </div>
                   <div style={{ color: '#ccc' }}>➜</div>
-                  <div style={{ textAlign: 'center' }}>
+                  <div style={{ textAlign: 'center' as any }}>
                     <div style={{ fontSize: '20px', marginBottom: '5px' }}>3️⃣</div>
                     <div style={{ fontWeight: 'bold', color: '#be123c', fontSize: '14px' }}>12일 후</div>
                   </div>
@@ -694,14 +685,14 @@ export default function RunMathApp() {
               </h2>
               
               <div style={{ marginBottom: '40px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' } as any}>
                   <FeedbackIcon />
                   <h3 style={{ margin: 0, fontSize: '20px', color: '#be123c', fontWeight: 'bold' }}>1:1 맞춤 피드백</h3>
                 </div>
                 <p style={{ color: '#666', marginBottom: '15px' }}>
                   학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' } as any}>
                   <img src="https://docs.google.com/presentation/d/10vbMBLOfwkY6BT7ZuJ7qTvGFnomNVYFTcnisFMBYrBA/export/png" alt="피드백1" style={styles.exampleImg} referrerPolicy="no-referrer" />
                   <img src="https://docs.google.com/presentation/d/1lFHrfh4v2_AP3DcyL1bbGN3K2_XjDROVQn57hqPbyPI/export/png" alt="피드백2" style={styles.exampleImg} referrerPolicy="no-referrer" />
                   <img src="https://docs.google.com/presentation/d/1JLxDtRDUytNH0CN68JO6TG8OynpjESLhplZ0D9ZCs9Q/export/png" alt="피드백3" style={styles.exampleImg} referrerPolicy="no-referrer" />
@@ -739,7 +730,7 @@ export default function RunMathApp() {
               </h2>
               <div style={{ ...styles.card, marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#555' }}>📞 연락처 정보</h3>
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ display: 'flex', gap: '15px' } as any}>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '13px', color: '#888', marginBottom: '5px' }}>학부모 전화번호</label>
                     <input type="tel" placeholder="010-0000-0000" value={contacts.parent} onChange={e => setContacts({...contacts, parent: e.target.value})} style={{ ...styles.input, marginBottom: 0 }} />
@@ -751,9 +742,9 @@ export default function RunMathApp() {
                 </div>
               </div>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' } as any}>
                 <span style={{ fontSize: '14px', color: '#666' }}>상담 내용 메모</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px' } as any}>
                   <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}><PenIcon /> 펜</button>
                   <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}><EraserIcon /> 지우개</button>
                   <button onClick={clearCanvas} style={{ ...styles.toolBtn(false), color: '#ef4444', borderColor: '#fee2e2' }}><TrashIcon /> 비우기</button>
@@ -766,7 +757,7 @@ export default function RunMathApp() {
                 />
               </div>
               
-              <div style={{ marginTop: '20px', background: '#fffbeb', padding: '20px', borderRadius: '16px', border: '1px solid #fcd34d', display: 'flex', gap: '15px' }}>
+              <div style={{ marginTop: '20px', background: '#fffbeb', padding: '20px', borderRadius: '16px', border: '1px solid #fcd34d', display: 'flex', gap: '15px' } as any}>
                 <span style={{ fontSize: '24px' }}>💡</span>
                 <div>
                   <h4 style={{ margin: '0 0 5px 0', color: '#92400e', fontWeight: 'bold' }}>상담 체크리스트</h4>
@@ -778,11 +769,11 @@ export default function RunMathApp() {
 
           {/* 하단 버튼바 */}
           <div style={styles.footer}>
-             <button onClick={handleBack} style={{ ...styles.button, background: '#f3f4f6', color: '#666', visibility: step === 1 ? 'hidden' : 'visible' }}><ChevronLeftIcon /> 이전</button>
+             <button onClick={handleBack} style={{ ...styles.button, background: '#f3f4f6', color: '#666', visibility: step === 1 ? 'hidden' : 'visible' } as any}><ChevronLeftIcon /> 이전</button>
              {step < 6 ? (
-               <button onClick={handleNext} style={{ ...styles.button, background: '#2563eb', color: 'white' }}>다음 단계 <ChevronRightIcon /></button>
+               <button onClick={handleNext} style={{ ...styles.button, background: '#2563eb', color: 'white' } as any}>다음 단계 <ChevronRightIcon /></button>
              ) : (
-               <button onClick={handleComplete} disabled={isSaving} style={{ ...styles.button, background: isSaving ? '#9ca3af' : '#16a34a', color: 'white' }}>{isSaving ? '저장 중...' : <><CheckIcon /> 상담 완료</>}</button>
+               <button onClick={handleComplete} disabled={isSaving} style={{ ...styles.button, background: isSaving ? '#9ca3af' : '#16a34a', color: 'white' } as any}>{isSaving ? '저장 중...' : <><CheckIcon /> 상담 완료</>}</button>
              )}
           </div>
         </>
