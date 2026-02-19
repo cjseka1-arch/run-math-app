@@ -32,9 +32,6 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>;
 const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
-const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
-const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
@@ -90,7 +87,7 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v2');
+      const savedPhotos = localStorage.getItem('runMathPhotos_v3'); // 캐시 갱신을 위해 키 변경
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
@@ -194,7 +191,7 @@ export default function RunMathApp() {
         const compressedBase64 = await compressImage(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try { localStorage.setItem('runMathPhotos_v2', JSON.stringify(updated)); } catch(e) { console.log('Storage Full'); }
+            try { localStorage.setItem('runMathPhotos_v3', JSON.stringify(updated)); } catch(e) {}
             return updated;
         });
       } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
@@ -227,9 +224,14 @@ export default function RunMathApp() {
   const handleNext = () => { saveCanvasState(); if (step === 2) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(4); } else if (step === 3) setStep(4); else setStep(step + 1); }
   const handleBack = () => { if (step === 4) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(2); } else setStep(step - 1); }
   const handleDivisionSelect = (div: string) => { setDivision(div); setStep(2); }
-  const getParentUrl = () => { const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); return `${baseUrl}${window.location.pathname}?${params.toString()}`; };
+  
+  const getParentUrl = () => { 
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; 
+    const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); 
+    return `${baseUrl}${window.location.pathname}?${params.toString()}`; 
+  };
 
-  // ★★★ 연락처 저장 기능
+  // ★★★ [연락처 저장]
   const handleSaveContact = () => {
     const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:런수학학원\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\nEND:VCARD`;
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
@@ -242,11 +244,11 @@ export default function RunMathApp() {
     document.body.removeChild(link);
   };
 
-  // ★★★ [신규] 통합 저장 기능 (순차 실행) ★★★
+  // ★★★ [통합 저장 기능] 이미지 캡처 -> 연락처 팝업
   const handleSaveEverything = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    alert("📸 1단계: 상담 내용을 사진첩에 저장합니다.\n(저장 후 2단계 연락처 창이 뜹니다!)");
+    alert("📸 1단계: 상담 내용을 사진첩에 저장합니다.\n(저장 후 자동으로 연락처 등록 창이 뜹니다!)");
 
     const element = document.getElementById('mobile-card');
     if (element && 
@@ -266,7 +268,7 @@ export default function RunMathApp() {
         }
     }
 
-    // 2초 후 연락처 저장 실행
+    // 이미지 다운로드 후 2초 뒤에 연락처 저장 실행
     setTimeout(() => {
         handleSaveContact();
         setIsProcessing(false);
@@ -301,6 +303,7 @@ export default function RunMathApp() {
         
         {/* 캡처할 영역 ID 지정 */}
         <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+          
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
@@ -339,14 +342,14 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* ★★★ PDF 버튼 완전히 삭제됨! 통합 버튼 1개만 존재합니다. ★★★ */}
+        {/* 통합 저장 버튼 */}
         <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveEverything} 
             disabled={isProcessing}
             style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' }}
           >
-             {isProcessing ? '⏳ 처리 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 한번에 저장 (최종)</>}
+             {isProcessing ? '⏳ 처리 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
           </button>
           <p style={{ textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px' }}>
             * 사진첩에 저장 후, 연락처 등록 화면이 뜹니다.
@@ -698,7 +701,6 @@ export default function RunMathApp() {
                   학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {/* ★★★ 피드백 예시 이미지도 차단 방지 적용 ★★★ */}
                   <img src="https://docs.google.com/presentation/d/10vbMBLOfwkY6BT7ZuJ7qTvGFnomNVYFTcnisFMBYrBA/export/png" alt="피드백1" style={styles.exampleImg} referrerPolicy="no-referrer" />
                   <img src="https://docs.google.com/presentation/d/1lFHrfh4v2_AP3DcyL1bbGN3K2_XjDROVQn57hqPbyPI/export/png" alt="피드백2" style={styles.exampleImg} referrerPolicy="no-referrer" />
                   <img src="https://docs.google.com/presentation/d/1JLxDtRDUytNH0CN68JO6TG8OynpjESLhplZ0D9ZCs9Q/export/png" alt="피드백3" style={styles.exampleImg} referrerPolicy="no-referrer" />
