@@ -32,13 +32,15 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>;
 const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
+const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
+const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
   const [parentData, setParentData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false); 
 
-  // ★ html2canvas 로드
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const script = document.createElement('script');
@@ -87,7 +89,7 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v3'); // 캐시 갱신을 위해 키 변경
+      const savedPhotos = localStorage.getItem('runMathPhotos_v3');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
@@ -147,7 +149,7 @@ export default function RunMathApp() {
     const preventTouch = (e: TouchEvent) => { if (e.target === canvas) e.preventDefault(); };
     canvas.addEventListener('touchstart', preventTouch, { passive: false });
     canvas.addEventListener('touchmove', preventTouch, { passive: false });
-    canvas.addEventListener('touchend', preventTouch, { passive: false });
+    canvas.addEventListener('touchmove', preventTouch, { passive: false });
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       if(canvas) {
@@ -231,7 +233,7 @@ export default function RunMathApp() {
     return `${baseUrl}${window.location.pathname}?${params.toString()}`; 
   };
 
-  // ★★★ [연락처 저장]
+  // ★★★ 연락처 저장 기능 ★★★
   const handleSaveContact = () => {
     const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:런수학학원\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\nEND:VCARD`;
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
@@ -244,11 +246,11 @@ export default function RunMathApp() {
     document.body.removeChild(link);
   };
 
-  // ★★★ [통합 저장 기능] 이미지 캡처 -> 연락처 팝업
+  // ★★★ [통합 저장] 사진첩 저장 -> 연락처 저장 ★★★
   const handleSaveEverything = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    alert("📸 1단계: 상담 내용을 사진첩에 저장합니다.\n(저장 후 자동으로 연락처 등록 창이 뜹니다!)");
+    alert("📸 상담 내용을 이미지로 저장합니다.\n(저장 직후 연락처 등록 창이 뜹니다!)");
 
     const element = document.getElementById('mobile-card');
     if (element && 
@@ -268,13 +270,14 @@ export default function RunMathApp() {
         }
     }
 
-    // 이미지 다운로드 후 2초 뒤에 연락처 저장 실행
+    // 2초 후 연락처 팝업 띄우기
     setTimeout(() => {
         handleSaveContact();
         setIsProcessing(false);
     }, 2000);
   };
 
+  // ★★★ Vercel 에러 방지를 위해 position: 'relative' as 'relative' 적용 완료 ★★★
   const styles = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky' as 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
@@ -293,7 +296,7 @@ export default function RunMathApp() {
     photoBox: { flex: 1, height: '80px', borderRadius: '8px', border: '2px dashed #ccc', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative' as 'relative', minWidth: '50px' },
     exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
     divBtn: (color: string, bg: string) => ({ width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg, fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }),
-    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative', zIndex: 1 }
+    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' as 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' as 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative' as 'relative', zIndex: 1 }
   };
 
   // === [화면 1] 학부모님용 모바일 명함 ===
@@ -301,7 +304,6 @@ export default function RunMathApp() {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
         
-        {/* 캡처할 영역 ID 지정 */}
         <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
           
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
@@ -342,17 +344,16 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* 통합 저장 버튼 */}
         <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveEverything} 
             disabled={isProcessing}
             style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' }}
           >
-             {isProcessing ? '⏳ 처리 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
+             {isProcessing ? '⏳ 저장 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
           </button>
           <p style={{ textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px' }}>
-            * 사진첩에 저장 후, 연락처 등록 화면이 뜹니다.
+            * 사진첩에 저장 후, 자동으로 연락처 등록 화면이 열립니다.
           </p>
         </div>
       </div>
