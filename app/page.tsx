@@ -229,9 +229,8 @@ export default function RunMathApp() {
   const handleDivisionSelect = (div: string) => { setDivision(div); setStep(2); }
   const getParentUrl = () => { const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); return `${baseUrl}${window.location.pathname}?${params.toString()}`; };
 
-  // ★★★ [수정 1] 전화번호 저장 기능 (안드로이드/iOS 호환 VCF)
+  // ★★★ 연락처 저장 기능
   const handleSaveContact = () => {
-    // VCF 파일 생성 (UTF-8 인코딩)
     const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:런수학학원\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\nEND:VCARD`;
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -243,13 +242,12 @@ export default function RunMathApp() {
     document.body.removeChild(link);
   };
 
-  // ★★★ [신규] 통합 저장 기능 (순차 실행: 이미지 -> 연락처) ★★★
+  // ★★★ [신규] 통합 저장 기능 (순차 실행) ★★★
   const handleSaveEverything = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    alert("잠시만요! 📸 상담 내용을 이미지로 저장하고,\n곧이어 연락처 등록 창이 뜹니다.");
+    alert("📸 1단계: 상담 내용을 사진첩에 저장합니다.\n(저장 후 2단계 연락처 창이 뜹니다!)");
 
-    // 1. 이미지 저장 (캡처)
     const element = document.getElementById('mobile-card');
     if (element && 
         // @ts-ignore
@@ -268,7 +266,7 @@ export default function RunMathApp() {
         }
     }
 
-    // 2. 2초 후 연락처 저장 실행 (순차적 다운로드로 충돌 방지)
+    // 2초 후 연락처 저장 실행
     setTimeout(() => {
         handleSaveContact();
         setIsProcessing(false);
@@ -300,9 +298,9 @@ export default function RunMathApp() {
   if (isParentMode && parentData) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
+        
         {/* 캡처할 영역 ID 지정 */}
         <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-          
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
@@ -341,14 +339,14 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* ★★★ [수정됨] 통합 저장 버튼만 남김 (PDF 버튼 삭제됨) ★★★ */}
+        {/* ★★★ PDF 버튼 완전히 삭제됨! 통합 버튼 1개만 존재합니다. ★★★ */}
         <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveEverything} 
             disabled={isProcessing}
             style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' }}
           >
-             {isProcessing ? '⏳ 저장 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
+             {isProcessing ? '⏳ 처리 중입니다...' : <><CheckIcon /> ✨ 연락처 & 상담내용 한번에 저장 (최종)</>}
           </button>
           <p style={{ textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px' }}>
             * 사진첩에 저장 후, 연락처 등록 화면이 뜹니다.
@@ -700,7 +698,7 @@ export default function RunMathApp() {
                   학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {/* ★★★ [수정] 피드백 예시 이미지도 차단 방지 적용 ★★★ */}
+                  {/* ★★★ 피드백 예시 이미지도 차단 방지 적용 ★★★ */}
                   <img src="https://docs.google.com/presentation/d/10vbMBLOfwkY6BT7ZuJ7qTvGFnomNVYFTcnisFMBYrBA/export/png" alt="피드백1" style={styles.exampleImg} referrerPolicy="no-referrer" />
                   <img src="https://docs.google.com/presentation/d/1lFHrfh4v2_AP3DcyL1bbGN3K2_XjDROVQn57hqPbyPI/export/png" alt="피드백2" style={styles.exampleImg} referrerPolicy="no-referrer" />
                   <img src="https://docs.google.com/presentation/d/1JLxDtRDUytNH0CN68JO6TG8OynpjESLhplZ0D9ZCs9Q/export/png" alt="피드백3" style={styles.exampleImg} referrerPolicy="no-referrer" />
