@@ -32,14 +32,15 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>;
 const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
-const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
+const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
   const [parentData, setParentData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false); 
 
-  // ★ html2canvas 로드
+  // ★ html2canvas 로드 (사진첩 저장을 위한 필수 도구)
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const script = document.createElement('script');
@@ -88,13 +89,11 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v4');
+      const savedPhotos = localStorage.getItem('runMathPhotos_v5');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
-    } catch (e) {
-      console.error("로컬 스토리지 로드 실패", e);
-    }
+    } catch (e) { console.error(e); }
   }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -192,7 +191,7 @@ export default function RunMathApp() {
         const compressedBase64 = await compressImage(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try { localStorage.setItem('runMathPhotos_v4', JSON.stringify(updated)); } catch(e) {}
+            try { localStorage.setItem('runMathPhotos_v5', JSON.stringify(updated)); } catch(e) {}
             return updated;
         });
       } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
@@ -225,16 +224,15 @@ export default function RunMathApp() {
   const handleNext = () => { saveCanvasState(); if (step === 2) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(4); } else if (step === 3) setStep(4); else setStep(step + 1); }
   const handleBack = () => { if (step === 4) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(2); } else setStep(step - 1); }
   const handleDivisionSelect = (div: string) => { setDivision(div); setStep(2); }
-  
-  const getParentUrl = () => { 
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; 
-    const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); 
-    return `${baseUrl}${window.location.pathname}?${params.toString()}`; 
-  };
+  const getParentUrl = () => { const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); return `${baseUrl}${window.location.pathname}?${params.toString()}`; };
 
-  // ★★★ 연락처 저장 기능 ★★★
-  const handleSaveContact = () => {
-    const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:런수학학원\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\nEND:VCARD`;
+  // =====================================================================
+  // ★★★ [안전한 분리형 기능] 스마트폰 보안 차단 방지를 위한 개별 버튼 ★★★
+  // =====================================================================
+
+  // [버튼 1] 연락처 저장 기능 (모바일 완벽 호환 VCF)
+  const handleSaveContactOnly = () => {
+    const vcard = `BEGIN:VCARD\r\nVERSION:3.0\r\nFN:런수학학원\r\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\r\nEND:VCARD`;
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -245,38 +243,36 @@ export default function RunMathApp() {
     document.body.removeChild(link);
   };
 
-  // ★★★ [통합 저장 기능] 이미지 캡처 -> 연락처 팝업 ★★★
-  const handleSaveEverything = async () => {
+  // [버튼 2] 사진첩 저장 기능 (화면 캡처)
+  const handleSaveImageOnly = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    alert("📸 1단계: 상담 내용을 사진첩에 저장합니다.\n(저장 직후 2단계 연락처 창이 뜹니다!)");
-
+    
     const element = document.getElementById('mobile-card');
     if (element && 
         // @ts-ignore
         window.html2canvas) {
         try {
             // @ts-ignore
-            const canvas = await window.html2canvas(element, { useCORS: true, scale: 2, allowTaint: true });
+            const canvas = await window.html2canvas(element, { useCORS: true, scale: 2 });
+            const imgUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.download = `${parentData.name}_상담내용.png`;
-            link.href = canvas.toDataURL();
+            link.href = imgUrl;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         } catch(e) {
             console.error("Image capture failed", e);
+            alert("사진 저장 중 오류가 발생했습니다.");
         }
+    } else {
+        alert("사진 저장 도구를 불러오는 중입니다. 1초 뒤에 다시 눌러주세요.");
     }
-
-    // 이미지 다운로드 2초 후 연락처 팝업 실행
-    setTimeout(() => {
-        handleSaveContact();
-        setIsProcessing(false);
-    }, 2000);
+    setIsProcessing(false);
   };
 
-  // ★★★ Vercel 에러 방지 무적 권한(any) 부여 완료 ★★★
+  // ★★★ Vercel 빨간줄(에러) 완벽 차단 무적 권한(any) 부여 완료 ★★★
   const styles: any = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
@@ -310,15 +306,7 @@ export default function RunMathApp() {
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
           </div>
 
-          <div data-html2canvas-ignore="true" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '25px' } as any}>
-            <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', flex: 1 }}>
-                <div style={{ background: '#1e3a8a', color: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(30, 58, 138, 0.2)' } as any}>
-                <PhoneIcon /> 전화 걸기
-                </div>
-            </a>
-          </div>
-
-          <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
+          <p style={{ color: '#64748b', margin: 0, fontSize: '14px', marginTop: '10px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
           <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>
           
           <div style={{ textAlign: 'left' as any }}>
@@ -344,18 +332,28 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        <div style={{ marginTop: '20px' }}>
+        {/* ★★★ [완벽 분리된 안전한 버튼 2개] ★★★ */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' } as any}>
           <button 
-            onClick={handleSaveEverything} 
-            disabled={isProcessing}
-            style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #1e3a8a)', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' } as any}
+            onClick={handleSaveContactOnly} 
+            style={{ flex: 1, padding: '16px 10px', background: '#1e3a8a', color: 'white', borderRadius: '16px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(30, 58, 138, 0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' } as any}
           >
-             {isProcessing ? '⏳ 저장 중입니다...' : <><CheckCircleIcon /> ✨ 연락처 & 상담내용 전체 저장</>}
+             <UserPlusIcon />
+             <span>1. 연락처 저장</span>
           </button>
-          <p style={{ textAlign: 'center' as any, color: '#666', fontSize: '12px', marginTop: '10px' }}>
-            * 사진첩에 저장 후, 자동으로 연락처 등록 창이 뜹니다.
-          </p>
+
+          <button 
+            onClick={handleSaveImageOnly} 
+            disabled={isProcessing}
+            style={{ flex: 1, padding: '16px 10px', background: isProcessing ? '#94a3b8' : '#2563eb', color: 'white', borderRadius: '16px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' } as any}
+          >
+             {isProcessing ? <span>⏳ 캡처 중..</span> : <><ImageIcon /><span>2. 사진첩 저장</span></>}
+          </button>
         </div>
+        <p style={{ textAlign: 'center' as any, color: '#666', fontSize: '13px', marginTop: '15px' }}>
+           * 위 버튼을 각각 눌러 소중한 상담 내용을 보관하세요!
+        </p>
+
       </div>
     );
   }
