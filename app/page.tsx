@@ -33,14 +33,13 @@ const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" he
 const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
 const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
-const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
   const [parentData, setParentData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false); 
 
-  // ★ html2canvas 로드 (사진첩 저장을 위한 필수 도구)
+  // ★ html2canvas 로드
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const script = document.createElement('script');
@@ -89,11 +88,13 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v5');
+      const savedPhotos = localStorage.getItem('runMathPhotos_v6');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error("로컬 스토리지 로드 실패", e);
+    }
   }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -191,7 +192,7 @@ export default function RunMathApp() {
         const compressedBase64 = await compressImage(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try { localStorage.setItem('runMathPhotos_v5', JSON.stringify(updated)); } catch(e) {}
+            try { localStorage.setItem('runMathPhotos_v6', JSON.stringify(updated)); } catch(e) {}
             return updated;
         });
       } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
@@ -224,26 +225,14 @@ export default function RunMathApp() {
   const handleNext = () => { saveCanvasState(); if (step === 2) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(4); } else if (step === 3) setStep(4); else setStep(step + 1); }
   const handleBack = () => { if (step === 4) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(2); } else setStep(step - 1); }
   const handleDivisionSelect = (div: string) => { setDivision(div); setStep(2); }
-  const getParentUrl = () => { const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); return `${baseUrl}${window.location.pathname}?${params.toString()}`; };
-
-  // =====================================================================
-  // ★★★ [안전한 분리형 기능] 스마트폰 보안 차단 방지를 위한 개별 버튼 ★★★
-  // =====================================================================
-
-  // [버튼 1] 연락처 저장 기능 (모바일 완벽 호환 VCF)
-  const handleSaveContactOnly = () => {
-    const vcard = `BEGIN:VCARD\r\nVERSION:3.0\r\nFN:런수학학원\r\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\r\nEND:VCARD`;
-    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "런수학학원.vcf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  
+  const getParentUrl = () => { 
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; 
+    const params = new URLSearchParams({ mode: 'parent', name: studentInfo.name, school: studentInfo.school, division: division, time: scheduleInfo.time || '상담 후 결정', book: scheduleInfo.book || '상담 후 결정', date: new Date().toLocaleDateString() }); 
+    return `${baseUrl}${window.location.pathname}?${params.toString()}`; 
   };
 
-  // [버튼 2] 사진첩 저장 기능 (화면 캡처)
+  // ★★★ [단일 사진첩 저장 기능] ★★★
   const handleSaveImageOnly = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -257,7 +246,7 @@ export default function RunMathApp() {
             const canvas = await window.html2canvas(element, { useCORS: true, scale: 2 });
             const imgUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
-            link.download = `${parentData.name}_상담내용.png`;
+            link.download = `${parentData.name}_런수학상담.png`;
             link.href = imgUrl;
             document.body.appendChild(link);
             link.click();
@@ -272,7 +261,6 @@ export default function RunMathApp() {
     setIsProcessing(false);
   };
 
-  // ★★★ Vercel 빨간줄(에러) 완벽 차단 무적 권한(any) 부여 완료 ★★★
   const styles: any = {
     container: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif', color: '#333', paddingBottom: '120px' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '30px', position: 'sticky', top: 0, background: 'white', zIndex: 40, paddingTop: '10px' },
@@ -299,22 +287,42 @@ export default function RunMathApp() {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
         
-        {/* 캡처할 영역 ID 지정 */}
+        {/* 📸 캡처되는 실제 영역 (버튼들은 이 영역 밖에 있어서 사진에 안 찍힘!) */}
         <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' } as any}>
           
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' } as any}>
-            <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '250px', width: '80%', height: 'auto' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' } as any}>
+            <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '200px', width: '80%', height: 'auto' }} />
           </div>
 
-          <p style={{ color: '#64748b', margin: 0, fontSize: '14px', marginTop: '10px' }}>"포기하지 않으면, 수학은 반드시 재미있어집니다."</p>
+          {/* ★ 전화번호 직접 노출 (로고 밑) ★ */}
+          <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none' }}>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '20px', letterSpacing: '1px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px' } as any}>
+              <PhoneIcon /> 010-7650-1239
+            </div>
+          </a>
+
+          {/* ★ 명언 한 줄로 강제 고정 (넘치지 않게 자간/여백 조정) ★ */}
+          <p style={{ color: '#64748b', margin: 0, fontSize: '13px', whiteSpace: 'nowrap', wordBreak: 'keep-all', letterSpacing: '-0.5px' } as any}>
+            "포기하지 않으면, 수학은 반드시 재미있어집니다."
+          </p>
           <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>
           
           <div style={{ textAlign: 'left' as any }}>
             <h3 style={{ fontSize: '18px', color: '#333', marginBottom: '15px' }}>📋 상담 결과 요약</h3>
-            <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', marginBottom: '10px' }}>
-              <span style={{ color: '#64748b', fontSize: '12px' }}>학생 이름</span>
-              <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>{parentData.name} ({parentData.school})</div>
+            
+            {/* ★ 이름과 학교 완벽 분리 배치 ★ */}
+            <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', marginBottom: '10px', display: 'flex', gap: '15px' } as any}>
+              <div style={{ flex: 1 }}>
+                <span style={{ color: '#64748b', fontSize: '12px' }}>학생 이름</span>
+                <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#333', marginTop: '4px' }}>{parentData.name}</div>
+              </div>
+              <div style={{ width: '1px', background: '#cbd5e1' }}></div>
+              <div style={{ flex: 1 }}>
+                <span style={{ color: '#64748b', fontSize: '12px' }}>학교 / 학년</span>
+                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#333', marginTop: '4px', wordBreak: 'keep-all' }}>{parentData.school}</div>
+              </div>
             </div>
+
             {parentData.division && (
                <div style={{ textAlign: 'center' as any, marginBottom: '10px' }}>
                  <span style={{ background: '#333', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '12px' }}>{parentData.division}</span>
@@ -332,27 +340,16 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* ★★★ [완벽 분리된 안전한 버튼 2개] ★★★ */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' } as any}>
-          <button 
-            onClick={handleSaveContactOnly} 
-            style={{ flex: 1, padding: '16px 10px', background: '#1e3a8a', color: 'white', borderRadius: '16px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(30, 58, 138, 0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' } as any}
-          >
-             <UserPlusIcon />
-             <span>1. 연락처 저장</span>
-          </button>
-
+        {/* ★ 사진첩 저장 버튼 (캡처 영역 밖으로 빼서 캡처 이미지 깔끔하게 유지) ★ */}
+        <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveImageOnly} 
             disabled={isProcessing}
-            style={{ flex: 1, padding: '16px 10px', background: isProcessing ? '#94a3b8' : '#2563eb', color: 'white', borderRadius: '16px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' } as any}
+            style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : '#2563eb', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' } as any}
           >
-             {isProcessing ? <span>⏳ 캡처 중..</span> : <><ImageIcon /><span>2. 사진첩 저장</span></>}
+             {isProcessing ? '⏳ 갤러리에 저장 중입니다...' : <><ImageIcon /> 📸 상담 내용 사진첩에 저장하기</>}
           </button>
         </div>
-        <p style={{ textAlign: 'center' as any, color: '#666', fontSize: '13px', marginTop: '15px' }}>
-           * 위 버튼을 각각 눌러 소중한 상담 내용을 보관하세요!
-        </p>
 
       </div>
     );
@@ -449,7 +446,7 @@ export default function RunMathApp() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', marginTop: '40px' } as any}>
-                <h3 style={{ margin: 0, fontSize: '18px', color: '#555', fontWeight: 'bold' }}>초기 진단 (필기)</h3>
+                <h3 style={{ margin: '0', fontSize: '18px', color: '#555', fontWeight: 'bold' }}>초기 진단 (필기)</h3>
                 <div style={{ display: 'flex', gap: '8px' } as any}>
                   <button onClick={() => setTool('pen')} style={styles.toolBtn(tool === 'pen')}><PenIcon /> 펜</button>
                   <button onClick={() => setTool('eraser')} style={styles.toolBtn(tool === 'eraser')}><EraserIcon /> 지우개</button>
@@ -685,7 +682,7 @@ export default function RunMathApp() {
               <div style={{ marginBottom: '40px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' } as any}>
                   <FeedbackIcon />
-                  <h3 style={{ margin: 0, fontSize: '20px', color: '#be123c', fontWeight: 'bold' }}>1:1 맞춤 피드백</h3>
+                  <h3 style={{ margin: '0', fontSize: '20px', color: '#be123c', fontWeight: 'bold' }}>1:1 맞춤 피드백</h3>
                 </div>
                 <p style={{ color: '#666', marginBottom: '15px' }}>
                   학생들에게 실제로 제공되는<br/>꼼꼼한 분석 리포트입니다.
