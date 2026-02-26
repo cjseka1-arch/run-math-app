@@ -88,13 +88,11 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v6');
+      const savedPhotos = localStorage.getItem('runMathPhotos_v7');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
-    } catch (e) {
-      console.error("로컬 스토리지 로드 실패", e);
-    }
+    } catch (e) { console.error(e); }
   }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -102,9 +100,10 @@ export default function RunMathApp() {
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
 
+  // ★ 필기 압축 저장 (에러 방지용 JPEG, 0.5 퀄리티)
   const saveCanvasState = () => {
     if (canvasRef.current) {
-      const dataUrl = canvasRef.current.toDataURL('image/png');
+      const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.5);
       setCanvasData(prev => ({ ...prev, [step]: dataUrl }));
     }
   };
@@ -126,6 +125,7 @@ export default function RunMathApp() {
         const context = canvas.getContext('2d');
         if (context) {
           context.scale(dpr, dpr);
+          // 캔버스 기본 배경을 하얀색으로 채워야 JPEG 저장 시 까맣게 안 나옵니다!
           context.fillStyle = 'white';
           context.fillRect(0, 0, canvas.width, canvas.height);
           context.lineCap = 'round';
@@ -134,6 +134,7 @@ export default function RunMathApp() {
           context.globalCompositeOperation = 'source-over';
           context.lineWidth = 3;
           context.strokeStyle = step === 6 ? '#ef4444' : '#1f2937'; 
+          
           if(canvasData[step]) {
             const img = new Image();
             img.src = canvasData[step];
@@ -192,7 +193,7 @@ export default function RunMathApp() {
         const compressedBase64 = await compressImage(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try { localStorage.setItem('runMathPhotos_v6', JSON.stringify(updated)); } catch(e) {}
+            try { localStorage.setItem('runMathPhotos_v7', JSON.stringify(updated)); } catch(e) {}
             return updated;
         });
       } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
@@ -212,9 +213,31 @@ export default function RunMathApp() {
 
   const handleComplete = async () => {
     if(!confirm('상담을 완료하고 구글 시트에 저장하시겠습니까?')) return;
-    saveCanvasState(); setIsSaving(true);
-    const payload = { name: studentInfo.name, school: `[${division}] ${studentInfo.school}`, plan: selectedPlan || '미선택', pPhone: contacts.parent, sPhone: contacts.student, request: parentData ? parentData.request : '', time: scheduleInfo.time, book: scheduleInfo.book, images: [canvasData[1], canvasRef.current?.toDataURL('image/png')] };
-    try { await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); } catch (e) { alert("저장 실패"); setIsSaving(false); return; }
+    saveCanvasState(); 
+    setIsSaving(true);
+    
+    // ★ 안전한 전송을 위해 image1, image2 명시적 분리 
+    const payload = { 
+      name: studentInfo.name, 
+      school: `[${division}] ${studentInfo.school}`, 
+      plan: selectedPlan || '미선택', 
+      pPhone: contacts.parent, 
+      sPhone: contacts.student, 
+      request: parentData ? parentData.request : '', 
+      time: scheduleInfo.time, 
+      book: scheduleInfo.book, 
+      image1: canvasData[1] || '', // 1단계 필기 (증발 방지)
+      image2: canvasRef.current?.toDataURL('image/jpeg', 0.5) || '', // 6단계 필기
+      images: [canvasData[1] || '', canvasRef.current?.toDataURL('image/jpeg', 0.5) || '']
+    };
+
+    try { 
+      await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); 
+    } catch (e) { 
+      alert("인터넷 연결을 확인해주세요. (저장 실패)"); 
+      setIsSaving(false); 
+      return; 
+    }
     const newRecord = { id: Date.now(), date: new Date().toLocaleDateString(), name: studentInfo.name, school: studentInfo.school, plan: selectedPlan || '미선택', pPhone: contacts.parent };
     const updatedHistory = [newRecord, ...historyList];
     setHistoryList(updatedHistory);
@@ -232,7 +255,7 @@ export default function RunMathApp() {
     return `${baseUrl}${window.location.pathname}?${params.toString()}`; 
   };
 
-  // ★★★ [단일 사진첩 저장 기능] ★★★
+  // ★★★ [버튼 2] 사진첩 저장 ★★★
   const handleSaveImageOnly = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -246,7 +269,7 @@ export default function RunMathApp() {
             const canvas = await window.html2canvas(element, { useCORS: true, scale: 2 });
             const imgUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
-            link.download = `${parentData.name}_런수학상담.png`;
+            link.download = `${parentData.name}_상담내용.png`;
             link.href = imgUrl;
             document.body.appendChild(link);
             link.click();
@@ -279,7 +302,8 @@ export default function RunMathApp() {
     photoBox: { flex: 1, height: '80px', borderRadius: '8px', border: '2px dashed #ccc', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', minWidth: '50px' },
     exampleImg: { width: '100%', borderRadius: '10px', border: '1px solid #ddd', marginBottom: '10px' },
     divBtn: (color: string, bg: string) => ({ width: '100%', padding: '20px', borderRadius: '15px', border: `2px solid ${color}`, background: bg, fontSize: '20px', fontWeight: 'bold', color: color, cursor: 'pointer', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }),
-    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative', zIndex: 1 }
+    loopStep: { background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', position: 'relative', zIndex: 1 },
+    quickTag: { background: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-block' }
   };
 
   // === [화면 1] 학부모님용 모바일 명함 ===
@@ -287,7 +311,7 @@ export default function RunMathApp() {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
         
-        {/* 📸 캡처되는 실제 영역 (버튼들은 이 영역 밖에 있어서 사진에 안 찍힘!) */}
+        {/* 📸 캡처되는 실제 영역 */}
         <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' } as any}>
           
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' } as any}>
@@ -301,7 +325,7 @@ export default function RunMathApp() {
             </div>
           </a>
 
-          {/* ★ 명언 한 줄로 강제 고정 (넘치지 않게 자간/여백 조정) ★ */}
+          {/* ★ 명언 한 줄로 강제 고정 ★ */}
           <p style={{ color: '#64748b', margin: 0, fontSize: '13px', whiteSpace: 'nowrap', wordBreak: 'keep-all', letterSpacing: '-0.5px' } as any}>
             "포기하지 않으면, 수학은 반드시 재미있어집니다."
           </p>
@@ -340,7 +364,7 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* ★ 사진첩 저장 버튼 (캡처 영역 밖으로 빼서 캡처 이미지 깔끔하게 유지) ★ */}
+        {/* ★ 사진첩 저장 버튼 1개만 깔끔하게 남김 ★ */}
         <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveImageOnly} 
@@ -427,8 +451,20 @@ export default function RunMathApp() {
               <h2 style={styles.sectionTitle('#1e3a8a')}>1. 학생 정보 및 과정 선택</h2>
               
               <div style={styles.card}>
+                {/* 안내 문구 추가 */}
+                <p style={{ fontSize: '12px', color: '#e11d48', marginTop: 0, marginBottom: '10px' }}>* 애플펜슬 대신 손가락으로 터치하면 키보드가 나옵니다.</p>
+                
                 <input type="text" placeholder="학생 이름" value={studentInfo.name} onChange={e => setStudentInfo({...studentInfo, name: e.target.value})} style={styles.input} />
-                <input type="text" placeholder="학교 / 학년" value={studentInfo.school} onChange={e => setStudentInfo({...studentInfo, school: e.target.value})} style={styles.input} />
+                <input type="text" placeholder="학교 / 학년" value={studentInfo.school} onChange={e => setStudentInfo({...studentInfo, school: e.target.value})} style={{...styles.input, marginBottom: '5px'}} />
+                
+                {/* ★ 빠른 입력 버튼 추가 (학년) ★ */}
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '15px' } as any}>
+                  {['초등', '중등', '고등', '1학년', '2학년', '3학년'].map(g => (
+                    <span key={g} onClick={() => setStudentInfo({...studentInfo, school: studentInfo.school ? studentInfo.school + ' ' + g : g})} style={styles.quickTag}>
+                      +{g}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <div style={{ marginTop: '30px' }}>
@@ -711,7 +747,16 @@ export default function RunMathApp() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: '#888', marginBottom: '5px' }}>사용 교재 (예: 개념원리, 쎈)</label>
-                  <input type="text" placeholder="사용할 교재명을 적어주세요" value={scheduleInfo.book} onChange={e => setScheduleInfo({...scheduleInfo, book: e.target.value})} style={{ ...styles.input, marginBottom: 0 }} />
+                  <input type="text" placeholder="사용할 교재명을 적어주세요" value={scheduleInfo.book} onChange={e => setScheduleInfo({...scheduleInfo, book: e.target.value})} style={{ ...styles.input, marginBottom: '5px' }} />
+                  
+                  {/* ★ 빠른 입력 버튼 추가 (교재) - 쎈B, 리피트 추가됨 ★ */}
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '5px' } as any}>
+                    {['개념원리', '쎈', '쎈B', '디딤돌', 'RPM', '리피트', '일품', '블랙라벨'].map(b => (
+                      <span key={b} onClick={() => setScheduleInfo({...scheduleInfo, book: scheduleInfo.book ? scheduleInfo.book + ', ' + b : b})} style={styles.quickTag}>
+                        +{b}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
