@@ -88,7 +88,7 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v7');
+      const savedPhotos = localStorage.getItem('runMathPhotos_v8');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
@@ -193,7 +193,7 @@ export default function RunMathApp() {
         const compressedBase64 = await compressImage(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try { localStorage.setItem('runMathPhotos_v7', JSON.stringify(updated)); } catch(e) {}
+            try { localStorage.setItem('runMathPhotos_v8', JSON.stringify(updated)); } catch(e) {}
             return updated;
         });
       } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
@@ -213,10 +213,10 @@ export default function RunMathApp() {
 
   const handleComplete = async () => {
     if(!confirm('상담을 완료하고 구글 시트에 저장하시겠습니까?')) return;
-    saveCanvasState(); 
+    saveCanvasState(); // 6페이지 필기 임시저장
     setIsSaving(true);
     
-    // ★ 안전한 전송을 위해 image1, image2 명시적 분리 
+    // ★ 1페이지 필기(canvasData[1])와 6페이지 필기를 구글 시트로 전송
     const payload = { 
       name: studentInfo.name, 
       school: `[${division}] ${studentInfo.school}`, 
@@ -226,8 +226,6 @@ export default function RunMathApp() {
       request: parentData ? parentData.request : '', 
       time: scheduleInfo.time, 
       book: scheduleInfo.book, 
-      image1: canvasData[1] || '', // 1단계 필기 (증발 방지)
-      image2: canvasRef.current?.toDataURL('image/jpeg', 0.5) || '', // 6단계 필기
       images: [canvasData[1] || '', canvasRef.current?.toDataURL('image/jpeg', 0.5) || '']
     };
 
@@ -247,7 +245,13 @@ export default function RunMathApp() {
 
   const handleNext = () => { saveCanvasState(); if (step === 2) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(4); } else if (step === 3) setStep(4); else setStep(step + 1); }
   const handleBack = () => { if (step === 4) { if (division === '고등부' && selectedPlan === '30-10-7 루프반') setStep(3); else setStep(2); } else setStep(step - 1); }
-  const handleDivisionSelect = (div: string) => { setDivision(div); setStep(2); }
+  
+  // ★★★ [중요 수정] 1단계에서 2단계로 넘어갈 때(버튼 클릭 시) 필기 내용을 저장하도록 추가! ★★★
+  const handleDivisionSelect = (div: string) => { 
+    saveCanvasState(); // <- 이 한 줄이 1단계 필기를 살려냅니다!
+    setDivision(div); 
+    setStep(2); 
+  }
   
   const getParentUrl = () => { 
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''; 
@@ -255,7 +259,7 @@ export default function RunMathApp() {
     return `${baseUrl}${window.location.pathname}?${params.toString()}`; 
   };
 
-  // ★★★ [버튼 2] 사진첩 저장 ★★★
+  // ★★★ [사진첩 저장] ★★★
   const handleSaveImageOnly = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -318,14 +322,12 @@ export default function RunMathApp() {
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '200px', width: '80%', height: 'auto' }} />
           </div>
 
-          {/* ★ 전화번호 직접 노출 (로고 밑) ★ */}
           <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none' }}>
             <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '20px', letterSpacing: '1px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px' } as any}>
               <PhoneIcon /> 010-7650-1239
             </div>
           </a>
 
-          {/* ★ 명언 한 줄로 강제 고정 ★ */}
           <p style={{ color: '#64748b', margin: 0, fontSize: '13px', whiteSpace: 'nowrap', wordBreak: 'keep-all', letterSpacing: '-0.5px' } as any}>
             "포기하지 않으면, 수학은 반드시 재미있어집니다."
           </p>
@@ -334,7 +336,6 @@ export default function RunMathApp() {
           <div style={{ textAlign: 'left' as any }}>
             <h3 style={{ fontSize: '18px', color: '#333', marginBottom: '15px' }}>📋 상담 결과 요약</h3>
             
-            {/* ★ 이름과 학교 완벽 분리 배치 ★ */}
             <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', marginBottom: '10px', display: 'flex', gap: '15px' } as any}>
               <div style={{ flex: 1 }}>
                 <span style={{ color: '#64748b', fontSize: '12px' }}>학생 이름</span>
@@ -364,7 +365,6 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        {/* ★ 사진첩 저장 버튼 1개만 깔끔하게 남김 ★ */}
         <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveImageOnly} 
@@ -451,13 +451,11 @@ export default function RunMathApp() {
               <h2 style={styles.sectionTitle('#1e3a8a')}>1. 학생 정보 및 과정 선택</h2>
               
               <div style={styles.card}>
-                {/* 안내 문구 추가 */}
                 <p style={{ fontSize: '12px', color: '#e11d48', marginTop: 0, marginBottom: '10px' }}>* 애플펜슬 대신 손가락으로 터치하면 키보드가 나옵니다.</p>
                 
                 <input type="text" placeholder="학생 이름" value={studentInfo.name} onChange={e => setStudentInfo({...studentInfo, name: e.target.value})} style={styles.input} />
                 <input type="text" placeholder="학교 / 학년" value={studentInfo.school} onChange={e => setStudentInfo({...studentInfo, school: e.target.value})} style={{...styles.input, marginBottom: '5px'}} />
                 
-                {/* ★ 빠른 입력 버튼 추가 (학년) ★ */}
                 <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '15px' } as any}>
                   {['초등', '중등', '고등', '1학년', '2학년', '3학년'].map(g => (
                     <span key={g} onClick={() => setStudentInfo({...studentInfo, school: studentInfo.school ? studentInfo.school + ' ' + g : g})} style={styles.quickTag}>
@@ -470,6 +468,7 @@ export default function RunMathApp() {
               <div style={{ marginTop: '30px' }}>
                 <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#555', fontWeight: 'bold' }}>과정을 선택하세요</h3>
                 
+                {/* ★ 1단계 필기가 안 날아가게 handleDivisionSelect 함수로 처리 ★ */}
                 <button onClick={() => handleDivisionSelect('초등부')} style={styles.divBtn('#f59e0b', '#fffbeb')}>
                   <StarIcon /> 초등부 (기초 완성)
                 </button>
@@ -749,7 +748,7 @@ export default function RunMathApp() {
                   <label style={{ display: 'block', fontSize: '13px', color: '#888', marginBottom: '5px' }}>사용 교재 (예: 개념원리, 쎈)</label>
                   <input type="text" placeholder="사용할 교재명을 적어주세요" value={scheduleInfo.book} onChange={e => setScheduleInfo({...scheduleInfo, book: e.target.value})} style={{ ...styles.input, marginBottom: '5px' }} />
                   
-                  {/* ★ 빠른 입력 버튼 추가 (교재) - 쎈B, 리피트 추가됨 ★ */}
+                  {/* ★ 교재 빠른 입력 버튼 (쎈B, 리피트 추가 완료) ★ */}
                   <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '5px' } as any}>
                     {['개념원리', '쎈', '쎈B', '디딤돌', 'RPM', '리피트', '일품', '블랙라벨'].map(b => (
                       <span key={b} onClick={() => setScheduleInfo({...scheduleInfo, book: scheduleInfo.book ? scheduleInfo.book + ', ' + b : b})} style={styles.quickTag}>
