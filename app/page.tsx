@@ -33,7 +33,6 @@ const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" he
 const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
 const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
-const UserPlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
 
 export default function RunMathApp() {
   const [isParentMode, setIsParentMode] = useState(false);
@@ -77,7 +76,9 @@ export default function RunMathApp() {
   const [isSaving, setIsSaving] = useState(false); 
   const [showHistory, setShowHistory] = useState(false); 
   const [historyList, setHistoryList] = useState<any[]>([]);
+  
   const [canvasData, setCanvasData] = useState<{ [key: number]: string }>({});
+  const canvasDataRef = useRef<{ [key: number]: string }>({});
 
   const [photos, setPhotos] = useState<{ [key: string]: string | null }>({
     small1: DRIVE_IMAGES[0], small2: DRIVE_IMAGES[1], 
@@ -88,7 +89,7 @@ export default function RunMathApp() {
 
   useEffect(() => {
     try {
-      const savedPhotos = localStorage.getItem('runMathPhotos_v9');
+      const savedPhotos = localStorage.getItem('runMathPhotos_v11');
       if (savedPhotos) setPhotos(JSON.parse(savedPhotos));
       const savedHistory = localStorage.getItem('runMathHistory');
       if (savedHistory) setHistoryList(JSON.parse(savedHistory));
@@ -100,11 +101,12 @@ export default function RunMathApp() {
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
 
-  // ★ 구글 시트 오류 해결! 무조건 PNG 원본 파일로 저장하도록 복구
+  // 무조건 펜을 뗄 때 PNG 원본으로 저장!
   const saveCanvasState = () => {
     if (canvasRef.current) {
-      const dataUrl = canvasRef.current.toDataURL('image/png'); // JPEG -> PNG 복구
+      const dataUrl = canvasRef.current.toDataURL('image/png'); 
       setCanvasData(prev => ({ ...prev, [step]: dataUrl }));
+      canvasDataRef.current[step] = dataUrl; 
     }
   };
 
@@ -165,19 +167,18 @@ export default function RunMathApp() {
   const startDrawing = (e: any) => { if (!ctxRef.current) return; isDrawing.current = true; const { x, y } = getPos(e); ctxRef.current.beginPath(); ctxRef.current.moveTo(x, y); };
   const draw = (e: any) => { if (!isDrawing.current || !ctxRef.current) return; if(e.cancelable && e.preventDefault) e.preventDefault(); const { x, y } = getPos(e); ctxRef.current.lineTo(x, y); ctxRef.current.stroke(); };
   
-  // ★ 1페이지 필기 증발 완벽 해결: 펜을 뗄 때마다 실시간으로 무조건 자동 저장!
   const stopDrawing = () => { 
     if (!ctxRef.current) return; 
     isDrawing.current = false; 
     ctxRef.current.closePath(); 
-    saveCanvasState(); // <- 이 한줄이 핵심입니다!
+    saveCanvasState(); 
   };
   
-  const clearCanvas = () => { if (!ctxRef.current || !canvasRef.current) return; ctxRef.current.fillStyle = 'white'; ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height); setCanvasData(prev => ({...prev, [step]: ''})); };
+  const clearCanvas = () => { if (!ctxRef.current || !canvasRef.current) return; ctxRef.current.fillStyle = 'white'; ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height); setCanvasData(prev => ({...prev, [step]: ''})); canvasDataRef.current[step] = ''; };
 
   const handleRefresh = () => { if (confirm('처음 화면으로 돌아가시겠습니까?')) window.location.href = window.location.pathname; };
 
-  const compressImage = async (file: File): Promise<string> => {
+  const compressPhoto = async (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const img = document.createElement('img');
       img.src = URL.createObjectURL(file);
@@ -197,10 +198,10 @@ export default function RunMathApp() {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressedBase64 = await compressImage(file);
+        const compressedBase64 = await compressPhoto(file);
         setPhotos(prev => {
             const updated = { ...prev, [id]: compressedBase64 };
-            try { localStorage.setItem('runMathPhotos_v9', JSON.stringify(updated)); } catch(e) {}
+            try { localStorage.setItem('runMathPhotos_v11', JSON.stringify(updated)); } catch(e) {}
             return updated;
         });
       } catch (err) { alert("사진 처리 중 오류가 발생했습니다."); }
@@ -218,12 +219,46 @@ export default function RunMathApp() {
     </label>
   );
 
+  // ★★★ [중요: 구글 에러 방지용 압축 함수] ★★★
+  // 아이패드의 엄청난 용량을 줄여서 구글 시트가 뻗지 않도록 돕는 핵심 마법입니다.
+  const compressBase64ForGoogle = async (base64Str: string): Promise<string> => {
+    return new Promise((resolve) => {
+        if (!base64Str) return resolve('');
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const targetWidth = 800; // 가로 길이를 800px로 줄여 용량 1/5 압축
+            const scale = img.width > targetWidth ? targetWidth / img.width : 1;
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/png')); // 구글이 좋아하는 PNG 포맷 유지!
+            } else {
+                resolve(base64Str);
+            }
+        };
+        img.onerror = () => resolve(base64Str);
+        img.src = base64Str;
+    });
+  };
+
   const handleComplete = async () => {
     if(!confirm('상담을 완료하고 구글 시트에 저장하시겠습니까?')) return;
     saveCanvasState(); 
     setIsSaving(true);
     
-    // ★ 구글 시트로 보낼 때 확실하게 PNG 원본으로 발송 (오류 제로)
+    // 1페이지, 6페이지 캔버스 이미지 가져오기
+    const rawImg1 = canvasDataRef.current[1] || ''; 
+    const rawImg2 = canvasRef.current?.toDataURL('image/png') || '';
+
+    // 구글이 뻗지 않게 용량 압축 실행
+    const img1 = await compressBase64ForGoogle(rawImg1);
+    const img2 = await compressBase64ForGoogle(rawImg2);
+
     const payload = { 
       name: studentInfo.name, 
       school: `[${division}] ${studentInfo.school}`, 
@@ -233,7 +268,9 @@ export default function RunMathApp() {
       request: parentData ? parentData.request : '', 
       time: scheduleInfo.time, 
       book: scheduleInfo.book, 
-      images: [canvasData[1] || '', canvasRef.current?.toDataURL('image/png') || '']
+      image1: img1, 
+      image2: img2,
+      images: [img1, img2]
     };
 
     try { 
@@ -260,20 +297,7 @@ export default function RunMathApp() {
     return `${baseUrl}${window.location.pathname}?${params.toString()}`; 
   };
 
-  // [버튼 1] 연락처 저장 기능
-  const handleSaveContactOnly = () => {
-    const vcard = `BEGIN:VCARD\r\nVERSION:3.0\r\nFN:런수학학원\r\nTEL;TYPE=CELL,VOICE:${TEACHER_PHONE}\r\nEND:VCARD`;
-    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "런수학학원.vcf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // [버튼 2] 사진첩 저장 기능
+  // ★★★ [디자인 100% 반영] 사진첩 단독 저장 버튼 ★★★
   const handleSaveImageOnly = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -324,7 +348,7 @@ export default function RunMathApp() {
     quickTag: { background: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-block' }
   };
 
-  // === [화면 1] 학부모님용 모바일 명함 ===
+  // === [화면 1] 학부모님용 모바일 명함 (요청하신 디자인 100% 원복) ===
   if (isParentMode && parentData) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', background: '#f8fafc', minHeight: '100vh', padding: '20px', fontFamily: '"Noto Sans KR", sans-serif' }}>
@@ -332,16 +356,18 @@ export default function RunMathApp() {
         {/* 📸 캡처되는 실제 영역 */}
         <div id="mobile-card" style={{ background: 'white', padding: '30px 20px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' } as any}>
           
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' } as any}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' } as any}>
             <img src="/logo.png" alt="런수학학원" style={{ display: 'block', maxWidth: '200px', width: '80%', height: 'auto' }} />
           </div>
 
-          <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none' }}>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '20px', letterSpacing: '1px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px' } as any}>
+          {/* ★ 전화번호를 버튼 없애고 바로 노출시킴 ★ */}
+          <div style={{ marginBottom: '20px' }}>
+            <a href={`tel:${TEACHER_PHONE}`} style={{ textDecoration: 'none', color: '#1e3a8a', fontSize: '20px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', letterSpacing: '0.5px' } as any}>
               <PhoneIcon /> 010-7650-1239
-            </div>
-          </a>
+            </a>
+          </div>
 
+          {/* ★ 명언을 한 줄로 강제 고정 ★ */}
           <p style={{ color: '#64748b', margin: 0, fontSize: '13px', whiteSpace: 'nowrap', wordBreak: 'keep-all', letterSpacing: '-0.5px' } as any}>
             "포기하지 않으면, 수학은 반드시 재미있어집니다."
           </p>
@@ -350,13 +376,14 @@ export default function RunMathApp() {
           <div style={{ textAlign: 'left' as any }}>
             <h3 style={{ fontSize: '18px', color: '#333', marginBottom: '15px' }}>📋 상담 결과 요약</h3>
             
-            <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', marginBottom: '10px', display: 'flex', gap: '15px' } as any}>
-              <div style={{ flex: 1 }}>
+            {/* ★ 학생 이름과 학교명을 위아래로 분리 ★ */}
+            <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', marginBottom: '10px' } as any}>
+              <div style={{ marginBottom: '10px' }}>
                 <span style={{ color: '#64748b', fontSize: '12px' }}>학생 이름</span>
                 <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#333', marginTop: '4px' }}>{parentData.name}</div>
               </div>
-              <div style={{ width: '1px', background: '#cbd5e1' }}></div>
-              <div style={{ flex: 1 }}>
+              <div style={{ height: '1px', background: '#cbd5e1', marginBottom: '10px' }}></div>
+              <div>
                 <span style={{ color: '#64748b', fontSize: '12px' }}>학교 / 학년</span>
                 <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#333', marginTop: '4px', wordBreak: 'keep-all' }}>{parentData.school}</div>
               </div>
@@ -379,27 +406,16 @@ export default function RunMathApp() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' } as any}>
-          <button 
-            onClick={handleSaveContactOnly} 
-            style={{ flex: 1, padding: '16px 10px', background: '#1e3a8a', color: 'white', borderRadius: '16px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(30, 58, 138, 0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' } as any}
-          >
-             <UserPlusIcon />
-             <span>1. 연락처 저장</span>
-          </button>
-
+        {/* ★ 사진첩 저장 버튼 1개만 둠 ★ */}
+        <div style={{ marginTop: '20px' }}>
           <button 
             onClick={handleSaveImageOnly} 
             disabled={isProcessing}
-            style={{ flex: 1, padding: '16px 10px', background: isProcessing ? '#94a3b8' : '#2563eb', color: 'white', borderRadius: '16px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' } as any}
+            style={{ width: '100%', border: 'none', background: isProcessing ? '#94a3b8' : '#2563eb', color: 'white', padding: '18px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)', transition: '0.2s' } as any}
           >
-             {isProcessing ? <span>⏳ 캡처 중..</span> : <><ImageIcon /><span>2. 사진첩 저장</span></>}
+             {isProcessing ? '⏳ 갤러리에 저장 중입니다...' : <><ImageIcon /> 📸 상담 내용 사진첩에 저장하기</>}
           </button>
         </div>
-        <p style={{ textAlign: 'center' as any, color: '#666', fontSize: '13px', marginTop: '15px' }}>
-           * 위 버튼을 각각 눌러 소중한 상담 내용을 보관하세요!
-        </p>
-
       </div>
     );
   }
